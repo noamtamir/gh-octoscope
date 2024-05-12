@@ -1,5 +1,14 @@
 # Octoscope
 The missing cost explorer for GitHub Actions
+
+## Usage
+```shell
+gh octoscope
+gh octoscope -report
+gh octoscope -report -console=false 
+# gh octoscope -csv
+# gh octoscope -json
+```
 ## Developing locally
 dependencies:
 - go
