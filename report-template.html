@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Octoscope Report</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+  <body>
+    <div>
+      <canvas id="chart"></canvas>
+    </div>
+    <script>
+      const data = {{.}}
+      const chart = document.getElementById('chart');
+      const labels = data.map(job => job.job_id)
+      const billable = data.map(job => job.billable_in_usd)
+      new Chart(chart, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Billable in USD',
+            data: billable,
+            borderWidth: 1
+          }]
+        }
+      });
+    </script>
+  </body>
+</html>

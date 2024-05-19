@@ -1,4 +1,5 @@
 /gh-octoscope
 /gh-octoscope.exe
-report*
-totals*
+report.csv
+report.html
+totals.csv

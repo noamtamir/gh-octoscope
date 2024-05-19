@@ -48,7 +48,7 @@ func generateTotalsCsvFile(totals Totals) {
 	var data [][]string
 
 	// headers
-	headers := []string{"total_job_duration", "total_rounded_up_job_duration", "total_billabe_in_usd"}
+	headers := []string{"total_job_duration", "total_rounded_up_job_duration", "total_billable_in_usd"}
 	data = append(data, headers)
 
 	// data

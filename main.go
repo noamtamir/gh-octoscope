@@ -61,6 +61,7 @@ func main() {
 	// cli
 	debug := flag.Bool("debug", false, "sets log level to debug")
 	csvFile := flag.Bool("csv", false, "Generate csv report")
+	htmlFile := flag.Bool("html", false, "Generate html report")
 	from := flag.String("from", "", "Generate report from this date. Format: YYYY-MM-DD")
 	flag.Parse()
 
@@ -98,5 +99,9 @@ func main() {
 	if *csvFile {
 		generateCsvFile(jobsDetails)
 		generateTotalsCsvFile(totals)
+	}
+
+	if *htmlFile {
+		generateHtmlFile(jobsDetails)
 	}
 }

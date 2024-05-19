@@ -10,7 +10,7 @@ import (
 	"github.com/google/go-github/v62/github"
 )
 
-type FlattendJob struct {
+type FlattenedJob struct {
 	OwnerName               string `json:"owner_name,omitempty"`
 	RepoID                  string `json:"repo_id,omitempty"`
 	RepoName                string `json:"repo_name,omitempty"`
@@ -47,10 +47,10 @@ type FlattendJob struct {
 	JobDuration             string `json:"job_duration,omitempty"`
 	RoundedUpJobDuration    string `json:"rounded_up_job_duration,omitempty"`
 	PricePerMinuteInUSD     string `json:"price_per_minute_in_usd,omitempty"`
-	BillableInUSD           string `json:"billabe_in_usd,omitempty"`
+	BillableInUSD           string `json:"billable_in_usd,omitempty"`
 }
 
-func (fj *FlattendJob) toCsv() []string {
+func (fj *FlattenedJob) toCsv() []string {
 	v := reflect.ValueOf(*fj)
 	n := v.NumField()
 
@@ -76,15 +76,15 @@ type JobDetails struct {
 	JobDuration          time.Duration       `json:"job_duration,omitempty"`
 	RoundedUpJobDuration time.Duration       `json:"rounded_up_job_duration,omitempty"`
 	PricePerMinuteInUSD  float64             `json:"price_per_minute_in_usd,omitempty"`
-	BillableInUSD        float64             `json:"billabe_in_usd,omitempty"`
+	BillableInUSD        float64             `json:"billable_in_usd,omitempty"`
 }
 
-func (j *JobDetails) flatten() FlattendJob {
+func (j *JobDetails) flatten() FlattenedJob {
 	stepsBytes, err := json.Marshal(j.Job.Steps)
 	checkErr(err)
 	steps := string(stepsBytes)
 
-	return FlattendJob{
+	return FlattenedJob{
 		OwnerName:               *j.Repo.Owner.Login,
 		RepoID:                  strconv.FormatInt(*j.Repo.ID, 10),
 		RepoName:                *j.Repo.Name,
@@ -125,8 +125,8 @@ func (j *JobDetails) flatten() FlattendJob {
 	}
 }
 
-func flattenJobs(jobs []JobDetails) []FlattendJob {
-	var flattened []FlattendJob
+func flattenJobs(jobs []JobDetails) []FlattenedJob {
+	var flattened []FlattenedJob
 	for _, job := range jobs {
 		flattened = append(flattened, job.flatten())
 	}
@@ -136,7 +136,7 @@ func flattenJobs(jobs []JobDetails) []FlattendJob {
 type Totals struct {
 	JobDuration          time.Duration `json:"total_job_duration,omitempty"`
 	RoundedUpJobDuration time.Duration `json:"total_rounded_up_job_duration,omitempty"`
-	BillableInUSD        float64       `json:"total_billabe_in_usd,omitempty"`
+	BillableInUSD        float64       `json:"total_billable_in_usd,omitempty"`
 }
 
 func (t *Totals) toTotalsString() TotalsString {
@@ -150,7 +150,7 @@ func (t *Totals) toTotalsString() TotalsString {
 type TotalsString struct {
 	JobDuration          string `json:"total_job_duration,omitempty"`
 	RoundedUpJobDuration string `json:"total_rounded_up_job_duration,omitempty"`
-	BillableInUSD        string `json:"total_billabe_in_usd,omitempty"`
+	BillableInUSD        string `json:"total_billable_in_usd,omitempty"`
 }
 
 func (ts *TotalsString) toCsv() []string {

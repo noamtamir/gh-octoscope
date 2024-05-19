@@ -3,8 +3,7 @@ The missing cost explorer for GitHub Actions
 
 ## Usage
 ```shell
-gh octoscope
-gh octoscope -csv -debug -from=2024-01-01
+gh octoscope -csv -html -debug -from=2024-01-01
 ```
 ## Developing locally
 dependencies:
