@@ -20,7 +20,7 @@ const MINUTE int = 60
 const HALF_MINUTE int = 30
 
 func calculateJobDuration(job *github.WorkflowJob) time.Duration {
-	return job.CompletedAt.Sub(job.StartedAt.Time)
+	return job.CompletedAt.Sub(job.CreatedAt.Time)
 }
 
 func roundUpToClosestMinute(d time.Duration) time.Duration {
