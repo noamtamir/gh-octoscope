@@ -36,8 +36,8 @@ func getPricePerMinute(labels []string) float64 {
 	// todo: make this better... perhaps use fuzzy search library?
 	// support large runners, support multiple labels...
 	// only supporting standard runners for now, assuming 1 label
-	if len(labels) == 0 {
-		logger.Debug().Msg("No labels found, cannot determine runner type")
+	if len(labels) != 1 {
+		logger.Debug().Msg("Unable to determine runner type, expected only 1 label")
 		return 0
 	}
 	first := labels[0]
