@@ -36,6 +36,10 @@ func getPricePerMinute(labels []string) float64 {
 	// todo: make this better... perhaps use fuzzy search library?
 	// support large runners, support multiple labels...
 	// only supporting standard runners for now, assuming 1 label
+	if len(labels) == 0 {
+		logger.Debug().Msg("No labels found, cannot determine runner type")
+		return 0
+	}
 	first := labels[0]
 	switch {
 	case strings.HasPrefix(first, UBUNTU):
@@ -45,7 +49,8 @@ func getPricePerMinute(labels []string) float64 {
 	case strings.HasPrefix(first, WINDOWS):
 		return WINDOWS_PRICE_PER_MINUTE
 	case strings.HasPrefix(first, "self-hosted"):
-		return 0 // does not support self hosted runners!
+		logger.Debug().Msg("self-hosted runners are not supported at this moment")
+		return 0
 	default:
 		return UBUNTU_PRICE_PER_MINUTE
 	}
