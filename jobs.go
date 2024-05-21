@@ -48,6 +48,7 @@ type FlattenedJob struct {
 	RoundedUpJobDuration    string `json:"rounded_up_job_duration,omitempty"`
 	PricePerMinuteInUSD     string `json:"price_per_minute_in_usd,omitempty"`
 	BillableInUSD           string `json:"billable_in_usd,omitempty"`
+	Runner                  string `json:"runner,omitempty"`
 }
 
 func (fj *FlattenedJob) toCsv() []string {
@@ -77,6 +78,7 @@ type JobDetails struct {
 	RoundedUpJobDuration time.Duration       `json:"rounded_up_job_duration,omitempty"`
 	PricePerMinuteInUSD  float64             `json:"price_per_minute_in_usd,omitempty"`
 	BillableInUSD        float64             `json:"billable_in_usd,omitempty"`
+	Runner               string              `json:"runner,omitempty"`
 }
 
 func (j *JobDetails) flatten() FlattenedJob {
@@ -122,6 +124,7 @@ func (j *JobDetails) flatten() FlattenedJob {
 		RoundedUpJobDuration:    j.RoundedUpJobDuration.String(),
 		PricePerMinuteInUSD:     strconv.FormatFloat(j.PricePerMinuteInUSD, 'f', 3, 64),
 		BillableInUSD:           strconv.FormatFloat(j.BillableInUSD, 'f', 3, 64),
+		Runner:                  j.Runner,
 	}
 }
 
@@ -178,9 +181,10 @@ func appendJobsDetails(
 	wfl *github.Workflow,
 	run *github.WorkflowRun,
 	jobs []*github.WorkflowJob,
+	runner string,
 ) ([]JobDetails, Totals) {
 	for _, job := range jobs {
-		duration, rounded, pricePerMinute, billable := CalculateBillablePrice(job)
+		duration, rounded, pricePerMinute, billable := CalculateBillablePrice(job, runner)
 		jobsDetails = append(jobsDetails, JobDetails{
 			Repo:                 repoDetails,
 			Workflow:             wfl,
@@ -190,6 +194,7 @@ func appendJobsDetails(
 			RoundedUpJobDuration: rounded,
 			PricePerMinuteInUSD:  pricePerMinute,
 			BillableInUSD:        billable,
+			Runner:               runner,
 		})
 		totals.JobDuration += duration
 		totals.RoundedUpJobDuration += rounded

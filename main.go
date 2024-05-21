@@ -35,23 +35,33 @@ func getData(repo repository.Repository, client *github.Client, from *string) ([
 
 	if *runs.TotalCount > 0 {
 		for _, run := range runs.WorkflowRuns {
+			workflowRunUsage := getRunDurationInMS(repo, client, *run.ID)
+			totalDuration += *workflowRunUsage.RunDurationMS
+
+			if len(*workflowRunUsage.Billable) != 1 {
+				logger.Fatal().Msg("more than 1 runner per workflow, not supported yet")
+			}
+			var runner string
+			i := 0
+			for k := range *workflowRunUsage.Billable {
+				runner = k
+				i++
+			}
+
 			jobs := getJobs(repo, client, *run.ID)
 			// logger.Debug().Msg(formatJson(jobs))
 			wfl, exists := wflMap[*run.WorkflowID]
 			if !exists {
 				logger.Fatal().Stack().Msgf("WorkflowID %d does not exist...", *run.WorkflowID)
 			}
-			jobsDetails, totals = appendJobsDetails(jobsDetails, totals, repoDetails, wfl, run, jobs.Jobs)
+			jobsDetails, totals = appendJobsDetails(jobsDetails, totals, repoDetails, wfl, run, jobs.Jobs, runner)
 			if *run.RunAttempt > 1 {
 				for i := 1; i < int(*run.RunAttempt); i++ {
 					attemptJobs := getAttempts(repo, client, *run.ID, int64(i))
 					// logger.Debug().Msg(formatJson(attemptJobs))
-					jobsDetails, totals = appendJobsDetails(jobsDetails, totals, repoDetails, wfl, run, attemptJobs.Jobs)
+					jobsDetails, totals = appendJobsDetails(jobsDetails, totals, repoDetails, wfl, run, attemptJobs.Jobs, runner)
 				}
 			}
-
-			workflowRunUsage := getRunDurationInMS(repo, client, *run.ID)
-			totalDuration += *workflowRunUsage.RunDurationMS
 		}
 	}
 	return jobsDetails, totals, totalDuration
