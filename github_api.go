@@ -10,18 +10,19 @@ import (
 
 var PAGE_SIZE = 30
 
-func logResponse(resp *github.Response) {
+func logResponse(resp *github.Response, i interface{}) {
 	logger.
 		Debug().
 		Str("method", resp.Request.Method).
 		Str("url", resp.Request.URL.RequestURI()).
 		Str("status", resp.Status).
+		Interface("body", i).
 		Msg("")
 }
 
 func getRepoDetails(repo repository.Repository, client *github.Client) *github.Repository {
 	r, resp, err := client.Repositories.Get(context.Background(), repo.Owner, repo.Name)
-	logResponse(resp)
+	logResponse(resp, r)
 	checkErr(err)
 	return r
 }
@@ -37,7 +38,7 @@ func getWorkflows(repo repository.Repository, client *github.Client) *github.Wor
 	}
 	for {
 		wfls, resp, err := client.Actions.ListWorkflows(context.Background(), repo.Owner, repo.Name, opt)
-		logResponse(resp)
+		logResponse(resp, wfls)
 		checkErr(err)
 		allWfls.Workflows = append(allWfls.Workflows, wfls.Workflows...)
 		totalCount := *allWfls.TotalCount + *wfls.TotalCount
@@ -113,7 +114,7 @@ func getRepositoryRuns(repo repository.Repository, client *github.Client, from s
 	}
 	for {
 		runs, resp, err := client.Actions.ListRepositoryWorkflowRuns(context.Background(), repo.Owner, repo.Name, opt)
-		logResponse(resp)
+		logResponse(resp, runs)
 		checkErr(err)
 		allRuns.WorkflowRuns = append(allRuns.WorkflowRuns, runs.WorkflowRuns...)
 		totalCount := *allRuns.TotalCount + *runs.TotalCount
@@ -140,7 +141,7 @@ func getJobs(repo repository.Repository, client *github.Client, runId int64) *gi
 	}
 	for {
 		jobs, resp, err := client.Actions.ListWorkflowJobs(context.Background(), repo.Owner, repo.Name, runId, opt)
-		logResponse(resp)
+		logResponse(resp, jobs)
 		checkErr(err)
 		allJobs.Jobs = append(allJobs.Jobs, jobs.Jobs...)
 		totalCount := *allJobs.TotalCount + *jobs.TotalCount
@@ -165,7 +166,7 @@ func getAttempts(repo repository.Repository, client *github.Client, runId int64,
 	}
 	for {
 		jobs, resp, err := client.Actions.ListWorkflowJobsAttempt(context.Background(), repo.Owner, repo.Name, runId, attempt, opt)
-		logResponse(resp)
+		logResponse(resp, jobs)
 		checkErr(err)
 		allJobs.Jobs = append(allJobs.Jobs, jobs.Jobs...)
 		totalCount := *allJobs.TotalCount + *jobs.TotalCount
@@ -181,7 +182,7 @@ func getAttempts(repo repository.Repository, client *github.Client, runId int64,
 
 func getRunDurationInMS(repo repository.Repository, client *github.Client, runId int64) *github.WorkflowRunUsage {
 	r, resp, err := client.Actions.GetWorkflowRunUsageByID(context.Background(), repo.Owner, repo.Name, runId)
-	logResponse(resp)
+	logResponse(resp, r)
 	checkErr(err)
 	return r
 }
