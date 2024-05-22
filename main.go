@@ -39,7 +39,8 @@ func getData(repo repository.Repository, client *github.Client, from *string) ([
 			totalDuration += *workflowRunUsage.RunDurationMS
 
 			if len(*workflowRunUsage.Billable) != 1 {
-				logger.Fatal().Msg("more than 1 runner per workflow, not supported yet")
+				logger.Debug().Msg("more than 1 runner per workflow, not supported yet")
+				continue
 			}
 			var runner string
 			i := 0
