@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"math"
 	"time"
 
 	"github.com/cli/go-gh/pkg/auth"
@@ -11,6 +12,11 @@ import (
 )
 
 var logger zerolog.Logger
+
+type RunnerDuration struct {
+	runner   string
+	duration *int64
+}
 
 func getData(repo repository.Repository, client *github.Client, from *string) ([]JobDetails, Totals, int64) {
 	// Note: github suggest to query sequentially to avoid hitting rate limits
@@ -31,41 +37,38 @@ func getData(repo repository.Repository, client *github.Client, from *string) ([
 	runs := getRepositoryRuns(repo, client, *from)
 	// logger.Debug().Msg(formatJson(runs))
 
-	var totalDuration int64 = 0
+	var totalBillable int64 = 0
 
 	if *runs.TotalCount > 0 {
 		for _, run := range runs.WorkflowRuns {
 			workflowRunUsage := getRunDurationInMS(repo, client, *run.ID)
-			totalDuration += *workflowRunUsage.RunDurationMS
 
-			if len(*workflowRunUsage.Billable) != 1 {
-				logger.Debug().Msg("more than 1 runner per workflow, not supported yet")
-				continue
-			}
-			var runner string
-			i := 0
-			for k := range *workflowRunUsage.Billable {
-				runner = k
-				i++
+			jobRunnerMap := make(map[int]RunnerDuration)
+			for runnerType, billable := range *workflowRunUsage.Billable {
+				for _, job := range billable.JobRuns {
+					jobRunnerMap[*job.JobID] = RunnerDuration{runnerType, job.DurationMS}
+					totalBillable += *job.DurationMS
+				}
 			}
 
 			jobs := getJobs(repo, client, *run.ID)
 			// logger.Debug().Msg(formatJson(jobs))
 			wfl, exists := wflMap[*run.WorkflowID]
 			if !exists {
-				logger.Fatal().Stack().Msgf("WorkflowID %d does not exist...", *run.WorkflowID)
+				logger.Error().Stack().Msgf("WorkflowID %d does not exist...", *run.WorkflowID)
+				continue
 			}
-			jobsDetails, totals = appendJobsDetails(jobsDetails, totals, repoDetails, wfl, run, jobs.Jobs, runner)
+			jobsDetails, totals = appendJobsDetails(jobsDetails, totals, repoDetails, wfl, run, jobs.Jobs, jobRunnerMap)
 			if *run.RunAttempt > 1 {
 				for i := 1; i < int(*run.RunAttempt); i++ {
 					attemptJobs := getAttempts(repo, client, *run.ID, int64(i))
 					// logger.Debug().Msg(formatJson(attemptJobs))
-					jobsDetails, totals = appendJobsDetails(jobsDetails, totals, repoDetails, wfl, run, attemptJobs.Jobs, runner)
+					jobsDetails, totals = appendJobsDetails(jobsDetails, totals, repoDetails, wfl, run, attemptJobs.Jobs, jobRunnerMap)
 				}
 			}
 		}
 	}
-	return jobsDetails, totals, totalDuration
+	return jobsDetails, totals, totalBillable
 }
 
 func main() {
@@ -104,9 +107,9 @@ func main() {
 
 	// sanity check
 	// todo: raise this to 100%
-	calculatedDuration := totals.JobDuration.Milliseconds()
-	precision := float64(calculatedDuration) / float64(fetchedDuration) * 100
-	logger.Debug().Msgf("Data is %.2f%% precise", precision)
+	calculatedDuration := totals.RoundedUpJobDuration.Milliseconds()
+	precision := math.Abs(1-math.Abs(float64(calculatedDuration)-float64(fetchedDuration))/float64(fetchedDuration)) * 100
+	logger.Debug().Int("calculated", int(calculatedDuration)).Int("fetched", int(fetchedDuration)).Msgf("Data is %.2f%% precise", precision)
 
 	// generate report
 	if *csvFile {

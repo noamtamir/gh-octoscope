@@ -181,10 +181,19 @@ func appendJobsDetails(
 	wfl *github.Workflow,
 	run *github.WorkflowRun,
 	jobs []*github.WorkflowJob,
-	runner string,
+	jobRunnerMap map[int]RunnerDuration,
 ) ([]JobDetails, Totals) {
 	for _, job := range jobs {
-		duration, rounded, pricePerMinute, billable := CalculateBillablePrice(job, runner)
+		runnerDuration, exists := jobRunnerMap[int(*job.ID)]
+		if !exists {
+			logger.Error().Stack().Msgf("JobID %d was not present in usage data", *run.WorkflowID)
+			continue
+		}
+		duration, rounded, pricePerMinute, billable := CalculateBillablePrice(job, runnerDuration.runner)
+		if *runnerDuration.duration == 0 && *job.Conclusion == "cancelled" {
+			// todo: find more edge cases and generalize
+			duration, rounded, billable = 0, 0, 0
+		}
 		jobsDetails = append(jobsDetails, JobDetails{
 			Repo:                 repoDetails,
 			Workflow:             wfl,
@@ -194,7 +203,7 @@ func appendJobsDetails(
 			RoundedUpJobDuration: rounded,
 			PricePerMinuteInUSD:  pricePerMinute,
 			BillableInUSD:        billable,
-			Runner:               runner,
+			Runner:               runnerDuration.runner,
 		})
 		totals.JobDuration += duration
 		totals.RoundedUpJobDuration += rounded
