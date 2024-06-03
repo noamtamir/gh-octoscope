@@ -4,17 +4,132 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Octoscope Report</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+      crossorigin="anonymous"
+    />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <style>
+      table {
+        display: inline-block;
+        height: 500px;
+        width: 100%;
+        overflow: auto;
+      }
+      thead,
+      th {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+      }
+      td {
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        overflow: hidden;
+        max-width: 200px;
+        word-wrap: break-word;
+      }
+      td:hover {
+        cursor: pointer;
+      }
+    </style>
   </head>
   <body>
-    <div>
-      <canvas id="chart"></canvas>
+    <nav class="navbar navbar-light bg-primary shadow h-100">
+      <div class="container-fluid">
+        <span class="navbar-brand mb-0 h1 text-light">Octoscope Report</span>
+      </div>
+    </nav>
+    <div class="container pt-2">
+      <div class="row justify-content-between py-2">
+        <div class="card border-primary shadow h-100" style="width: 18rem">
+          <div class="card-body">
+            <p class="card-title text-secondary">Duration</p>
+            <h5 class="card-text">{{.Totals.JobDuration}}</h5>
+          </div>
+        </div>
+
+        <div class="card border-primary shadow h-100" style="width: 18rem">
+          <div class="card-body">
+            <p class="card-title text-secondary">Billable</p>
+            <h5 class="card-text">{{.Totals.RoundedUpJobDuration}}</h5>
+          </div>
+        </div>
+
+        <div class="card border-primary shadow h-100" style="width: 18rem">
+          <div class="card-body">
+            <p class="card-title text-secondary">USD</p>
+            <h5 class="card-text">{{.Totals.BillableInUSD}}</h5>
+          </div>
+        </div>
+      </div>
+      <div class="row py-2">
+        <div class="col">
+          <canvas id="chart"></canvas>
+        </div>
+        <div class="col">
+          <canvas id="chart2"></canvas>
+        </div>
+      </div>
+      <div class="row py-2">
+        <div class="table-responsive">
+          <table id="data" class="table"></table>
+        </div>
+      </div>
     </div>
     <script>
-      const data = {{.}}
+      function toggleTextWrap(ev) {
+        let el = ev.srcElement
+        if (el.style.whiteSpace === 'nowrap') {
+          el.style.whiteSpace = 'normal'
+        }  else {
+          el.style.whiteSpace = 'nowrap'
+        }
+      }
+
+      const totals = {{.Totals}}
+      const jobs = {{.Jobs}}
+      const flattenedJobs = {{.FlattenedJobs}}
+      function generateTable() {
+        const table = document.querySelector('#data')
+        if (!flattenedJobs || flattenedJobs.length == 0) {
+          console.info('No data, cannot generate table.')
+          return
+        }
+
+        // headers
+        let thead = document.createElement('thead')
+        table.appendChild(thead)
+        let tr = document.createElement('tr')
+        thead.appendChild(tr)
+        for (let [colName, _] of Object.entries(flattenedJobs[0])) {
+          let th = document.createElement('th')
+          th.innerText = colName
+          tr.appendChild(th)
+        }
+
+        //data
+        let tbody = document.createElement('tbody')
+        table.appendChild(tbody)
+        for (let job of flattenedJobs) {
+          let tr = document.createElement('tr')
+          tr.classList.add("table-primary")
+          tbody.appendChild(tr)
+          for (let [_, value] of Object.entries(job)) {
+            let td = document.createElement('td')
+            td.innerText = value
+            td.addEventListener("click", toggleTextWrap)
+            tr.appendChild(td)
+          }
+        }
+      }
+
       const chart = document.getElementById('chart');
-      const labels = data.map(job => job.job_id)
-      const billable = data.map(job => job.billable_in_usd)
+      const labels = flattenedJobs.map(job => job.job_id)
+      const billable = flattenedJobs.map(job => job.billable_in_usd)
       new Chart(chart, {
         type: 'bar',
         data: {
@@ -26,6 +141,50 @@
           }]
         }
       });
+
+      const chart2 = document.getElementById('chart2');
+      const sorted = jobs.toSorted((a,b) => Date.parse(a.job.created_at) - Date.parse(b.job.created_at))
+      const groupedByJob = Object.groupBy(sorted, job => `${job.workflow.name}: ${job.job.name}`)
+      const datasets = Object.entries(groupedByJob).map(([groupName, jobs]) => ({
+        label: groupName,
+        data: jobs.map(job => ({x: job.job.created_at, y: job.job_duration * 1e-9})),
+        borderWidth: 1
+      }))
+      new Chart(chart2, {
+        type: 'line',
+        data: {
+          datasets
+        },
+        options: {
+          plugins: {
+            legend: {
+              display: false
+            }
+          },
+          scales: {
+            x: {
+              type: "time",
+              display: false,
+              title: {
+                display: true,
+                text: 'Datetime'
+              }
+            },
+            y: {
+              title: {
+                display: true,
+                text: 'Duration (sec)'
+              }
+            }
+          }
+        }
+      });
+      generateTable()
     </script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+      integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+      crossorigin="anonymous"
+    ></script>
   </body>
 </html>

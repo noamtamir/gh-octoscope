@@ -118,6 +118,6 @@ func main() {
 	}
 
 	if *htmlFile {
-		generateHtmlFile(jobsDetails)
+		generateHtmlFile(jobsDetails, totals)
 	}
 }

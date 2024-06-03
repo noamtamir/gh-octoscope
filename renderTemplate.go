@@ -10,15 +10,27 @@ import (
 //go:embed report-template.html
 var reportTemplate string
 
-func renderTemplate(w io.Writer, jobsDetails []FlattenedJob) {
-	tmpl := template.Must(template.New("report").Parse(reportTemplate))
-	tmpl.Execute(w, jobsDetails)
+type InputData struct {
+	FlattenedJobs []FlattenedJob
+	Jobs          []JobDetails
+	Totals        TotalsString
 }
 
-func generateHtmlFile(jobsDetails []JobDetails) {
+func renderTemplate(w io.Writer, data InputData) {
+	tmpl := template.Must(template.New("report").Parse(reportTemplate))
+
+	tmpl.Execute(w, data)
+}
+
+func generateHtmlFile(jobsDetails []JobDetails, totals Totals) {
 	htmlFile, err := os.Create("report.html")
 	checkErr(err)
 	defer htmlFile.Close()
-	renderTemplate(htmlFile, flattenJobs(jobsDetails))
+	data := InputData{
+		FlattenedJobs: flattenJobs(jobsDetails),
+		Jobs:          jobsDetails,
+		Totals:        totals.toTotalsString(),
+	}
+	renderTemplate(htmlFile, data)
 	logger.Info().Msg("report.html created successfully!")
 }
