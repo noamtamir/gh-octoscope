@@ -186,7 +186,7 @@ func appendJobsDetails(
 	for _, job := range jobs {
 		runnerDuration, exists := jobRunnerMap[int(*job.ID)]
 		if !exists {
-			logger.Error().Stack().Msgf("JobID %d was not present in usage data", *run.WorkflowID)
+			logger.Error().Stack().Msgf("JobID %d was not present in usage data", *job.ID)
 			continue
 		}
 		duration, rounded, pricePerMinute, billable := CalculateBillablePrice(job, runnerDuration.runner)
