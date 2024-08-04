@@ -12,30 +12,6 @@
     />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
-    <style>
-      table {
-        display: inline-block;
-        height: 500px;
-        width: 100%;
-        overflow: auto;
-      }
-      thead,
-      th {
-        position: sticky;
-        top: 0;
-        z-index: 1;
-      }
-      td {
-        white-space: nowrap;
-        text-overflow: ellipsis;
-        overflow: hidden;
-        max-width: 200px;
-        word-wrap: break-word;
-      }
-      td:hover {
-        cursor: pointer;
-      }
-    </style>
   </head>
   <body>
     <nav class="navbar navbar-light bg-primary shadow h-100">
@@ -47,110 +23,87 @@
       <div class="row justify-content-between py-2">
         <div class="card border-primary shadow h-100" style="width: 18rem">
           <div class="card-body">
-            <p class="card-title text-secondary">Duration</p>
+            <p class="card-title text-secondary">Total Actual Duration</p>
             <h5 class="card-text">{{.Totals.JobDuration}}</h5>
           </div>
         </div>
 
         <div class="card border-primary shadow h-100" style="width: 18rem">
           <div class="card-body">
-            <p class="card-title text-secondary">Billable</p>
+            <p class="card-title text-secondary">Total Billable Duration</p>
             <h5 class="card-text">{{.Totals.RoundedUpJobDuration}}</h5>
           </div>
         </div>
 
         <div class="card border-primary shadow h-100" style="width: 18rem">
           <div class="card-body">
-            <p class="card-title text-secondary">USD</p>
+            <p class="card-title text-secondary">Total Billabe in USD</p>
             <h5 class="card-text">{{.Totals.BillableInUSD}}</h5>
           </div>
         </div>
       </div>
-      <div class="row py-2">
+
+      <div id="loading" class="row p-3">
+        <div class="col text-center">
+          Loading...
+        </div>
+      </div>
+
+      <div class="row p-2">
         <div class="col">
           <canvas id="chart"></canvas>
         </div>
-        <div class="col">
-          <canvas id="chart2"></canvas>
-        </div>
       </div>
-      <div class="row py-2">
+
+      <div class="row p-2">
         <div class="table-responsive">
-          <table id="data" class="table"></table>
+          <table id="workflow-summary" class="table"></table>
         </div>
       </div>
     </div>
     <script>
-      function toggleTextWrap(ev) {
-        let el = ev.srcElement
-        if (el.style.whiteSpace === 'nowrap') {
-          el.style.whiteSpace = 'normal'
-        }  else {
-          el.style.whiteSpace = 'nowrap'
-        }
-      }
+      const loading = document.getElementById('loading');
+      loading.style.display = 'none';
 
-      const totals = {{.Totals}}
       const jobs = {{.Jobs}}
-      const flattenedJobs = {{.FlattenedJobs}}
-      function generateTable() {
-        const table = document.querySelector('#data')
-        if (!flattenedJobs || flattenedJobs.length == 0) {
-          console.info('No data, cannot generate table.')
-          return
+
+      const summed = jobs.reduce((acc, job) => {
+        if (!acc[job.workflow.name]) {
+          acc[job.workflow.name] = {}
         }
 
-        // headers
-        let thead = document.createElement('thead')
-        table.appendChild(thead)
-        let tr = document.createElement('tr')
-        thead.appendChild(tr)
-        for (let [colName, _] of Object.entries(flattenedJobs[0])) {
-          let th = document.createElement('th')
-          th.innerText = colName
-          tr.appendChild(th)
-        }
-
-        //data
-        let tbody = document.createElement('tbody')
-        table.appendChild(tbody)
-        for (let job of flattenedJobs) {
-          let tr = document.createElement('tr')
-          tr.classList.add("table-primary")
-          tbody.appendChild(tr)
-          for (let [_, value] of Object.entries(job)) {
-            let td = document.createElement('td')
-            td.innerText = value
-            td.addEventListener("click", toggleTextWrap)
-            tr.appendChild(td)
+        if (!acc[job.workflow.name][job.workflow_run.id]) {
+          acc[job.workflow.name][job.workflow_run.id] = {
+            run_duration: 0,
+            rounded_up_duration: 0,
+            billable_in_usd: 0
           }
         }
+
+        acc[job.workflow.name][job.workflow_run.id].run_duration += job.job_duration/1000000000
+        acc[job.workflow.name][job.workflow_run.id].rounded_up_duration += job.rounded_up_job_duration/1000000000
+        acc[job.workflow.name][job.workflow_run.id].billable_in_usd += job.billable_in_usd ? job.billable_in_usd : 0
+        acc[job.workflow.name][job.workflow_run.id].created_at = job.workflow_run.created_at
+        return acc
       }
+      , {})
+
 
       const chart = document.getElementById('chart');
-      const labels = flattenedJobs.map(job => job.job_id)
-      const billable = flattenedJobs.map(job => job.billable_in_usd)
-      new Chart(chart, {
-        type: 'bar',
-        data: {
-          labels: labels,
-          datasets: [{
-            label: 'Billable in USD',
-            data: billable,
-            borderWidth: 1
-          }]
+      const durations = Object.entries(summed).map(([name, runs]) => ({label: name + ' Actual Duration', data: Object.entries(runs).map(([runId, run]) => ({x: run.created_at, y: run.run_duration})), borderWidth: 1}))
+      const billabeDurations = Object.entries(summed).map(([name, runs]) => ({label: name + ' Billable Duration', data: Object.entries(runs).map(([runId, run]) => ({x: run.created_at, y: run.rounded_up_duration})), borderWidth: 1, fill: '-1'}))
+      const datasets = durations.concat(billabeDurations)
+      datasets.sort((a,b)=> {
+        if (a.label < b.label) {
+          return -1;
         }
-      });
-
-      const chart2 = document.getElementById('chart2');
-      const sorted = jobs.toSorted((a,b) => Date.parse(a.job.created_at) - Date.parse(b.job.created_at))
-      const groupedByJob = Object.groupBy(sorted, job => `${job.workflow.name}: ${job.job.name}`)
-      const datasets = Object.entries(groupedByJob).map(([groupName, jobs]) => ({
-        label: groupName,
-        data: jobs.map(job => ({x: job.job.created_at, y: job.job_duration * 1e-9})),
-        borderWidth: 1
-      }))
-      new Chart(chart2, {
+        if (a.label > b.label) {
+          return 1;
+        }
+        return 0;
+      })
+      
+      new Chart(chart, {
         type: 'line',
         data: {
           datasets
@@ -158,13 +111,13 @@
         options: {
           plugins: {
             legend: {
-              display: false
+              display: true
             }
           },
           scales: {
             x: {
               type: "time",
-              display: false,
+              display: true,
               title: {
                 display: true,
                 text: 'Datetime'
@@ -179,7 +132,67 @@
           }
         }
       });
-      generateTable()
+      
+      // stats util functions:
+      const sum = arr => arr.reduce((acc, curr) => acc + curr.run_duration, 0);
+      const mean = arr => (sum(arr) / arr.length).toFixed(3);
+      const min = sortedArr => sortedArr[0].run_duration
+      const max = sortedArr => sortedArr.at(-1).run_duration
+
+      function genereateWorkflowSummary() {
+        const table = document.querySelector('#workflow-summary')
+        if (!summed || Object.keys(summed).length == 0) {
+          console.info('No data, cannot generate table.')
+          return
+        }
+
+        let thead = document.createElement('thead')
+        table.appendChild(thead)
+        let tr = document.createElement('tr')
+        thead.appendChild(tr)
+        const headers = ['workflow', 'no. of runs', 'min', 'mean', 'max']
+        for (let header of headers) {
+          let th = document.createElement('th')
+          th.innerText = header
+          th.classList.add("table-primary")
+          tr.appendChild(th)
+        }
+        
+        let tbody = document.createElement('tbody')
+        table.appendChild(tbody)
+        for (let [workflowName, runs] of Object.entries(summed)) {
+          let tr = document.createElement('tr')
+          tbody.appendChild(tr)
+          
+          // workflow name
+          td = document.createElement('td')
+          td.innerText = workflowName
+          tr.appendChild(td)
+          
+          const runsArray = Object.values(runs).sort((a, b) => a.run_duration - b.run_duration)
+          
+          // no. of runs
+          td = document.createElement('td')
+          td.innerText = runsArray.length
+          tr.appendChild(td)
+
+          // min
+          td = document.createElement('td')
+          td.innerText = min(runsArray)
+          tr.appendChild(td)
+
+          // mean
+          td = document.createElement('td')
+          td.innerText = mean(runsArray)
+          tr.appendChild(td)
+  
+          // max
+          td = document.createElement('td')
+          td.innerText = max(runsArray)
+          tr.appendChild(td)
+        }
+      }
+      genereateWorkflowSummary()
     </script>
     <script
       src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"

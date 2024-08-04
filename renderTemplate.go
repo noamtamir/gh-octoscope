@@ -11,9 +11,8 @@ import (
 var reportTemplate string
 
 type InputData struct {
-	FlattenedJobs []FlattenedJob
-	Jobs          []JobDetails
-	Totals        TotalsString
+	Jobs   []JobDetails
+	Totals TotalsString
 }
 
 func renderTemplate(w io.Writer, data InputData) {
@@ -27,9 +26,8 @@ func generateHtmlFile(jobsDetails []JobDetails, totals Totals) {
 	checkErr(err)
 	defer htmlFile.Close()
 	data := InputData{
-		FlattenedJobs: flattenJobs(jobsDetails),
-		Jobs:          jobsDetails,
-		Totals:        totals.toTotalsString(),
+		Jobs:   jobsDetails,
+		Totals: totals.toTotalsString(),
 	}
 	renderTemplate(htmlFile, data)
 	logger.Info().Msg("report.html created successfully!")
