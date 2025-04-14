@@ -67,32 +67,56 @@
 
       const jobs = {{.Jobs}}
 
-      const summed = jobs.reduce((acc, job) => {
-        if (!acc[job.workflow.name]) {
-          acc[job.workflow.name] = {}
+      const transformedJobs = jobs.map(job => ({
+        workflow_name: job.workflow?.name || 'Unknown Workflow',
+        workflow_run_id: job.workflow_run?.id || 0,
+        created_at: new Date(job.workflow_run?.created_at || new Date()),
+        job_duration: Number(job.job_duration || 0),
+        rounded_up_job_duration: Number(job.rounded_up_job_duration || 0),
+        billable_in_usd: Number(job.billable_in_usd || 0)
+      }));
+
+      const summed = transformedJobs.reduce((acc, job) => {
+        const workflowName = job.workflow_name;
+        if (!acc[workflowName]) {
+          acc[workflowName] = {};
         }
 
-        if (!acc[job.workflow.name][job.workflow_run.id]) {
-          acc[job.workflow.name][job.workflow_run.id] = {
+        const runId = String(job.workflow_run_id);
+        if (!acc[workflowName][runId]) {
+          acc[workflowName][runId] = {
             run_duration: 0,
             rounded_up_duration: 0,
-            billable_in_usd: 0
-          }
+            billable_in_usd: 0,
+            created_at: job.created_at
+          };
         }
 
-        acc[job.workflow.name][job.workflow_run.id].run_duration += job.job_duration/1000000000
-        acc[job.workflow.name][job.workflow_run.id].rounded_up_duration += job.rounded_up_job_duration/1000000000
-        acc[job.workflow.name][job.workflow_run.id].billable_in_usd += job.billable_in_usd ? job.billable_in_usd : 0
-        acc[job.workflow.name][job.workflow_run.id].created_at = job.workflow_run.created_at
-        return acc
-      }
-      , {})
-
+        acc[workflowName][runId].run_duration += job.job_duration / 1000000000;
+        acc[workflowName][runId].rounded_up_duration += job.rounded_up_job_duration / 1000000000;
+        acc[workflowName][runId].billable_in_usd += job.billable_in_usd;
+        return acc;
+      }, {});
 
       const chart = document.getElementById('chart');
-      const durations = Object.entries(summed).map(([name, runs]) => ({label: name + ' Actual Duration', data: Object.entries(runs).map(([runId, run]) => ({x: run.created_at, y: run.run_duration})), borderWidth: 1}))
-      const billabeDurations = Object.entries(summed).map(([name, runs]) => ({label: name + ' Billable Duration', data: Object.entries(runs).map(([runId, run]) => ({x: run.created_at, y: run.rounded_up_duration})), borderWidth: 1, fill: '-1'}))
-      const datasets = durations.concat(billabeDurations)
+      const durations = Object.entries(summed).map(([name, runs]) => ({
+        label: name + ' Actual Duration',
+        data: Object.entries(runs).map(([runId, run]) => ({
+          x: run.created_at,
+          y: run.run_duration
+        })),
+        borderWidth: 1
+      }));
+      const billable_durations = Object.entries(summed).map(([name, runs]) => ({
+        label: name + ' Billable Duration',
+        data: Object.entries(runs).map(([runId, run]) => ({
+          x: run.created_at,
+          y: run.rounded_up_duration
+        })),
+        borderWidth: 1,
+        fill: '-1'
+      }));
+      const datasets = durations.concat(billable_durations);
       datasets.sort((a,b)=> {
         if (a.label < b.label) {
           return -1;

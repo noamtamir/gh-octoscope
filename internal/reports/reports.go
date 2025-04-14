@@ -25,20 +25,20 @@ type ReportData struct {
 type JobDetails struct {
 	Repo                 *github.Repository  `json:"repo,omitempty"`
 	Workflow             *github.Workflow    `json:"workflow,omitempty"`
-	WorkflowRun          *github.WorkflowRun `json:"workflowRun,omitempty"`
+	WorkflowRun          *github.WorkflowRun `json:"workflow_run,omitempty"`
 	Job                  *github.WorkflowJob `json:"job,omitempty"`
-	JobDuration          time.Duration       `json:"jobDuration"`
-	RoundedUpJobDuration time.Duration       `json:"roundedUpJobDuration"`
-	PricePerMinuteInUSD  float64             `json:"pricePerMinuteInUsd"`
-	BillableInUSD        float64             `json:"billableInUsd"`
+	JobDuration          time.Duration       `json:"job_duration"`
+	RoundedUpJobDuration time.Duration       `json:"rounded_up_job_duration"`
+	PricePerMinuteInUSD  float64             `json:"price_per_minute_in_usd"`
+	BillableInUSD        float64             `json:"billable_in_usd"`
 	Runner               string              `json:"runner,omitempty"`
 }
 
 // TotalCosts represents the total costs across all jobs
 type TotalCosts struct {
-	JobDuration          time.Duration `json:"jobDuration"`
-	RoundedUpJobDuration time.Duration `json:"roundedUpJobDuration"`
-	BillableInUSD        float64       `json:"billableInUsd"`
+	JobDuration          time.Duration `json:"job_duration"`
+	RoundedUpJobDuration time.Duration `json:"rounded_up_job_duration"`
+	BillableInUSD        float64       `json:"billable_in_usd"`
 }
 
 // CSVGenerator generates CSV reports
@@ -115,42 +115,42 @@ func (g *HTMLGenerator) Generate(data *ReportData) error {
 }
 
 type flatJobDetails struct {
-	OwnerName                   string `json:"ownerName,omitempty"`
-	RepoID                      string `json:"repoId,omitempty"`
-	RepoName                    string `json:"repoName,omitempty"`
-	WorkflowID                  string `json:"workflowId,omitempty"`
-	WorkflowName                string `json:"workflowName,omitempty"`
-	WorkflowRunID               string `json:"workflowRunId,omitempty"`
-	WorkflowRunName             string `json:"workflowRunName,omitempty"`
-	HeadBranch                  string `json:"headBranch,omitempty"`
-	HeadSHA                     string `json:"headSha,omitempty"`
-	WorkflowRunRunNumber        string `json:"workflowRunRunNumber,omitempty"`
-	WorkflowRunRunAttempt       string `json:"workflowRunRunAttempt,omitempty"`
-	WorkflowRunEvent            string `json:"workflowRunEvent,omitempty"`
-	WorkflowRunDisplayTitle     string `json:"workflowRunDisplayTitle,omitempty"`
-	WorkflowRunStatus           string `json:"workflowRunStatus,omitempty"`
-	WorkflowRunConclusion       string `json:"workflowRunConclusion,omitempty"`
-	WorkflowRunCreatedAt        string `json:"workflowRunCreatedAt,omitempty"`
-	WorkflowRunUpdatedAt        string `json:"workflowRunUpdatedAt,omitempty"`
-	WorkflowRunRunStartedAt     string `json:"workflowRunRunStartedAt,omitempty"`
-	ActorLogin                  string `json:"actorLogin,omitempty"`
-	JobID                       string `json:"jobId,omitempty"`
-	JobName                     string `json:"jobName,omitempty"`
-	JobStatus                   string `json:"jobStatus,omitempty"`
-	JobConclusion               string `json:"jobConclusion,omitempty"`
-	JobCreatedAt                string `json:"jobCreatedAt,omitempty"`
-	JobStartedAt                string `json:"jobStartedAt,omitempty"`
-	JobCompletedAt              string `json:"jobCompletedAt,omitempty"`
-	JobSteps                    string `json:"jobSteps,omitempty"`
-	JobLabels                   string `json:"jobLabels,omitempty"`
-	JobRunnerID                 string `json:"jobRunnerId,omitempty"`
-	JobRunnerName               string `json:"jobRunnerName,omitempty"`
-	JobRunnerGroupID            string `json:"jobRunnerGroupId,omitempty"`
-	JobRunnerGroupName          string `json:"jobRunnerGroupName,omitempty"`
-	JobRunAttempt               string `json:"jobRunAttempt,omitempty"`
-	JobDurationSeconds          string `json:"jobDuration,omitempty"`
-	RoundedUpJobDurationSeconds string `json:"roundedUpJobDuration,omitempty"`
-	PricePerMinuteInUSD         string `json:"pricePerMinuteInUsd,omitempty"`
-	BillableInUSD               string `json:"billableInUsd,omitempty"`
+	OwnerName                   string `json:"owner_name,omitempty"`
+	RepoID                      string `json:"repo_id,omitempty"`
+	RepoName                    string `json:"repo_name,omitempty"`
+	WorkflowID                  string `json:"workflow_id,omitempty"`
+	WorkflowName                string `json:"workflow_name,omitempty"`
+	WorkflowRunID               string `json:"workflow_run_id,omitempty"`
+	WorkflowRunName             string `json:"workflow_run_name,omitempty"`
+	HeadBranch                  string `json:"head_branch,omitempty"`
+	HeadSHA                     string `json:"head_sha,omitempty"`
+	WorkflowRunRunNumber        string `json:"workflow_run_run_number,omitempty"`
+	WorkflowRunRunAttempt       string `json:"workflow_run_run_attempt,omitempty"`
+	WorkflowRunEvent            string `json:"workflow_run_event,omitempty"`
+	WorkflowRunDisplayTitle     string `json:"workflow_run_display_title,omitempty"`
+	WorkflowRunStatus           string `json:"workflow_run_status,omitempty"`
+	WorkflowRunConclusion       string `json:"workflow_run_conclusion,omitempty"`
+	WorkflowRunCreatedAt        string `json:"workflow_run_created_at,omitempty"`
+	WorkflowRunUpdatedAt        string `json:"workflow_run_updated_at,omitempty"`
+	WorkflowRunRunStartedAt     string `json:"workflow_run_run_started_at,omitempty"`
+	ActorLogin                  string `json:"actor_login,omitempty"`
+	JobID                       string `json:"job_id,omitempty"`
+	JobName                     string `json:"job_name,omitempty"`
+	JobStatus                   string `json:"job_status,omitempty"`
+	JobConclusion               string `json:"job_conclusion,omitempty"`
+	JobCreatedAt                string `json:"job_created_at,omitempty"`
+	JobStartedAt                string `json:"job_started_at,omitempty"`
+	JobCompletedAt              string `json:"job_completed_at,omitempty"`
+	JobSteps                    string `json:"job_steps,omitempty"`
+	JobLabels                   string `json:"job_labels,omitempty"`
+	JobRunnerID                 string `json:"job_runner_id,omitempty"`
+	JobRunnerName               string `json:"job_runner_name,omitempty"`
+	JobRunnerGroupID            string `json:"job_runner_group_id,omitempty"`
+	JobRunnerGroupName          string `json:"job_runner_group_name,omitempty"`
+	JobRunAttempt               string `json:"job_run_attempt,omitempty"`
+	JobDurationSeconds          string `json:"job_duration,omitempty"`
+	RoundedUpJobDurationSeconds string `json:"rounded_up_job_duration,omitempty"`
+	PricePerMinuteInUSD         string `json:"price_per_minute_in_usd,omitempty"`
+	BillableInUSD               string `json:"billable_in_usd,omitempty"`
 	Runner                      string `json:"runner,omitempty"`
 }
