@@ -19,6 +19,34 @@ Available flags:
 - `-from`: Generate report from this date (YYYY-MM-DD format)
 - `-prod-log`: Enable production structured logging
 
+## Viewing the HTML Report
+
+After generating the report, you can view it by running a simple web server:
+
+### Prerequisites
+- Python 3 (if you don't have Python installed):
+  - Windows: Download from [python.org](https://www.python.org/downloads/)
+  - macOS: `brew install python3` (requires Homebrew) or download from [python.org](https://www.python.org/downloads/)
+  - Linux: `sudo apt install python3` (Ubuntu/Debian) or `sudo dnf install python3` (Fedora)
+
+### Starting the Server
+1. Navigate to the reports directory:
+```shell
+cd reports
+```
+
+2. Start the Python server:
+```shell
+python3 -m http.server 8000
+```
+
+3. Open your web browser and visit:
+```
+http://localhost:8000/report.html
+```
+
+The server will continue running until you press Ctrl+C to stop it.
+
 ## Development
 
 ### Prerequisites

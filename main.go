@@ -159,9 +159,14 @@ func run(cfg Config) error {
 		}
 	}
 
+	// Create reports directory
+	if err := os.MkdirAll("reports", 0755); err != nil {
+		return err
+	}
+
 	// Generate reports
 	if cfg.CSVReport {
-		csvGen := reports.NewCSVGenerator("report.csv", "totals.csv", logger)
+		csvGen := reports.NewCSVGenerator("reports/report.csv", "reports/totals.csv", logger)
 		if err := csvGen.Generate(&reports.ReportData{
 			Jobs:   jobDetails,
 			Totals: totalCosts,
@@ -171,7 +176,7 @@ func run(cfg Config) error {
 	}
 
 	if cfg.HTMLReport {
-		htmlGen, err := reports.NewHTMLGenerator("report.html", "report-template.html", logger)
+		htmlGen, err := reports.NewHTMLGenerator("reports/report.html", logger)
 		if err != nil {
 			return err
 		}
