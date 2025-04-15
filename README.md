@@ -18,6 +18,7 @@ Available flags:
 - `-debug`: Enable debug logging
 - `-from`: Generate report from this date (YYYY-MM-DD format)
 - `-prod-log`: Enable production structured logging
+- `-fetch`: Fetch new data (defaults to true, set to false to use existing data)
 
 ## Viewing the HTML Report
 
