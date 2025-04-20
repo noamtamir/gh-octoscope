@@ -2,12 +2,36 @@ package reports
 
 import (
 	"encoding/csv"
-	"encoding/json"
 	"os"
 	"reflect"
 	"strconv"
-	"strings"
+
+	"github.com/rs/zerolog"
 )
+
+// CSVGenerator generates CSV reports
+type CSVGenerator struct {
+	jobsPath   string
+	totalsPath string
+	logger     zerolog.Logger
+}
+
+// NewCSVGenerator creates a new CSV report generator
+func NewCSVGenerator(jobsPath, totalsPath string, logger zerolog.Logger) *CSVGenerator {
+	return &CSVGenerator{
+		jobsPath:   jobsPath,
+		totalsPath: totalsPath,
+		logger:     logger,
+	}
+}
+
+// Generate implements the Generator interface for CSV reports
+func (g *CSVGenerator) Generate(data *ReportData) error {
+	if err := g.generateJobsReport(data.Jobs); err != nil {
+		return err
+	}
+	return g.generateTotalsReport(data.Totals)
+}
 
 func (g *CSVGenerator) generateJobsReport(jobs []JobDetails) error {
 	if len(jobs) == 0 {
@@ -15,7 +39,7 @@ func (g *CSVGenerator) generateJobsReport(jobs []JobDetails) error {
 		return nil
 	}
 
-	flattened := g.flattenJobs(jobs)
+	flattened := FlattenJobs(jobs)
 	data := g.prepareCSVData(flattened)
 
 	return g.writeCSVFile(g.jobsPath, data)
@@ -58,61 +82,7 @@ func (g *CSVGenerator) writeCSVFile(path string, data [][]string) error {
 	return nil
 }
 
-func (g *CSVGenerator) flattenJobs(jobs []JobDetails) []flatJobDetails {
-	var flattened []flatJobDetails
-	for _, job := range jobs {
-		flattened = append(flattened, g.flattenJob(job))
-	}
-	return flattened
-}
-
-func (g *CSVGenerator) flattenJob(job JobDetails) flatJobDetails {
-	stepsBytes, _ := json.Marshal(job.Job.Steps)
-	steps := string(stepsBytes)
-
-	return flatJobDetails{
-		OwnerName:                   *job.Repo.Owner.Login,
-		RepoID:                      strconv.FormatInt(*job.Repo.ID, 10),
-		RepoName:                    *job.Repo.Name,
-		WorkflowID:                  strconv.FormatInt(*job.Workflow.ID, 10),
-		WorkflowName:                *job.Workflow.Name,
-		WorkflowRunID:               strconv.FormatInt(*job.WorkflowRun.ID, 10),
-		WorkflowRunName:             *job.WorkflowRun.Name,
-		HeadBranch:                  *job.WorkflowRun.HeadBranch,
-		HeadSHA:                     *job.WorkflowRun.HeadSHA,
-		WorkflowRunRunNumber:        strconv.Itoa(*job.WorkflowRun.RunNumber),
-		WorkflowRunRunAttempt:       strconv.Itoa(*job.WorkflowRun.RunAttempt),
-		WorkflowRunEvent:            *job.WorkflowRun.Event,
-		WorkflowRunDisplayTitle:     *job.WorkflowRun.DisplayTitle,
-		WorkflowRunStatus:           *job.WorkflowRun.Status,
-		WorkflowRunConclusion:       *job.WorkflowRun.Conclusion,
-		WorkflowRunCreatedAt:        job.WorkflowRun.CreatedAt.String(),
-		WorkflowRunUpdatedAt:        job.WorkflowRun.UpdatedAt.String(),
-		WorkflowRunRunStartedAt:     job.WorkflowRun.RunStartedAt.String(),
-		ActorLogin:                  *job.WorkflowRun.Actor.Login,
-		JobID:                       strconv.FormatInt(*job.Job.ID, 10),
-		JobName:                     *job.Job.Name,
-		JobStatus:                   *job.Job.Status,
-		JobConclusion:               *job.Job.Conclusion,
-		JobCreatedAt:                job.Job.CreatedAt.String(),
-		JobStartedAt:                job.Job.StartedAt.String(),
-		JobCompletedAt:              job.Job.CompletedAt.String(),
-		JobSteps:                    steps,
-		JobLabels:                   strings.Join(job.Job.Labels, "; "),
-		JobRunnerID:                 strconv.FormatInt(*job.Job.RunnerID, 10),
-		JobRunnerName:               *job.Job.RunnerName,
-		JobRunnerGroupID:            strconv.FormatInt(*job.Job.RunnerGroupID, 10),
-		JobRunnerGroupName:          *job.Job.RunnerGroupName,
-		JobRunAttempt:               strconv.FormatInt(*job.Job.RunAttempt, 10),
-		JobDurationSeconds:          strconv.FormatFloat(job.JobDuration.Seconds(), 'f', 0, 64),
-		RoundedUpJobDurationSeconds: strconv.FormatFloat(job.RoundedUpJobDuration.Seconds(), 'f', 0, 64),
-		PricePerMinuteInUSD:         strconv.FormatFloat(job.PricePerMinuteInUSD, 'f', 3, 64),
-		BillableInUSD:               strconv.FormatFloat(job.BillableInUSD, 'f', 3, 64),
-		Runner:                      job.Runner,
-	}
-}
-
-func (g *CSVGenerator) prepareCSVData(flattened []flatJobDetails) [][]string {
+func (g *CSVGenerator) prepareCSVData(flattened []FlatJobDetails) [][]string {
 	var data [][]string
 
 	// Add headers
@@ -132,7 +102,7 @@ func (g *CSVGenerator) prepareCSVData(flattened []flatJobDetails) [][]string {
 	return data
 }
 
-func (g *CSVGenerator) structToStringSlice(fj flatJobDetails) []string {
+func (g *CSVGenerator) structToStringSlice(fj FlatJobDetails) []string {
 	v := reflect.ValueOf(fj)
 	n := v.NumField()
 	values := make([]string, n)

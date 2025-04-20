@@ -13,6 +13,7 @@ import (
 	"github.com/cli/go-gh/pkg/auth"
 	"github.com/cli/go-gh/v2/pkg/repository"
 	"github.com/google/go-github/v62/github"
+	"github.com/joho/godotenv"
 	"github.com/noamtamir/gh-octoscope/internal/api"
 	"github.com/noamtamir/gh-octoscope/internal/billing"
 	"github.com/noamtamir/gh-octoscope/internal/reports"
@@ -23,6 +24,7 @@ import (
 type Config struct {
 	Debug      bool
 	ProdLogger bool
+	FullReport bool
 	CSVReport  bool
 	HTMLReport bool
 	FromDate   string
@@ -36,6 +38,7 @@ func parseFlags() Config {
 		Fetch:    true, // default to fetching data
 	}
 
+	flag.BoolVar(&cfg.FullReport, "report", false, "Generate full report")
 	flag.BoolVar(&cfg.Debug, "debug", false, "sets log level to debug")
 	flag.BoolVar(&cfg.ProdLogger, "prod-log", false, "Production structured log")
 	flag.BoolVar(&cfg.CSVReport, "csv", false, "Generate csv report")
@@ -71,6 +74,11 @@ func setupLogger(cfg Config) zerolog.Logger {
 
 func run(cfg Config) error {
 	logger := setupLogger(cfg)
+
+	err := godotenv.Load()
+	if err != nil {
+		logger.Fatal().Msg("Error loading .env file")
+	}
 
 	var jobDetails []reports.JobDetails
 	var totalCosts reports.TotalCosts
@@ -234,6 +242,38 @@ func run(cfg Config) error {
 			Totals: totalCosts,
 		}); err != nil {
 			return err
+		}
+	}
+
+	if cfg.FullReport {
+		repo, err := repository.Current()
+		if err != nil {
+			return err
+		}
+
+		apiBaseUrl := os.Getenv("OCTOSCOPE_API_URL")
+		appBaseUrl := os.Getenv("OCTOSCOPE_APP_URL")
+
+		if apiBaseUrl == "" || appBaseUrl == "" {
+			return fmt.Errorf("OCTOSCOPE_API_URL and OCTOSCOPE_APP_URL environment variables must be set when using -report flag")
+		}
+
+		osClient := api.NewOctoscopeClient(api.OctoscopeConfig{
+			BaseUrl: apiBaseUrl,
+			Logger:  logger,
+		})
+
+		serverGen := reports.NewServerGenerator(osClient, reports.ServerConfig{
+			AppURL:    appBaseUrl,
+			OwnerName: repo.Owner,
+			RepoName:  repo.Name,
+		}, logger)
+
+		if err := serverGen.Generate(&reports.ReportData{
+			Jobs:   jobDetails,
+			Totals: totalCosts,
+		}); err != nil {
+			return fmt.Errorf("failed to generate server report: %w", err)
 		}
 	}
 

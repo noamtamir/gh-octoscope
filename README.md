@@ -15,10 +15,17 @@ gh octoscope -csv -html -debug -from=2024-01-01
 Available flags:
 - `-csv`: Generate CSV report
 - `-html`: Generate HTML report
+- `-report`: Generate full ephemeral report
 - `-debug`: Enable debug logging
 - `-from`: Generate report from this date (YYYY-MM-DD format)
 - `-prod-log`: Enable production structured logging
 - `-fetch`: Fetch new data (defaults to true, set to false to use existing data)
+
+## Environment Variables
+
+When using the `-report` flag, the following environment variables must be set:
+- `OCTOSCOPE_API_URL`: The base URL of the Octoscope API (e.g., https://api.octoscope.com)
+- `OCTOSCOPE_APP_URL`: The base URL of the Octoscope web application (e.g., https://app.octoscope.com)
 
 ## Viewing the HTML Report
 

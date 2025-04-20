@@ -1,22 +1,13 @@
 package reports
 
 import (
-	_ "embed"
 	"encoding/json"
-	"fmt"
-	"html/template"
-	"os"
-	"path/filepath"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/google/go-github/v62/github"
-	"github.com/rs/zerolog"
 )
-
-//go:embed template/report.html
-var templateHTML string
-
-const jobsPerChunk = 100
 
 // Generator defines the interface for report generation
 type Generator interface {
@@ -49,123 +40,8 @@ type TotalCosts struct {
 	BillableInUSD        float64       `json:"billable_in_usd"`
 }
 
-// CSVGenerator generates CSV reports
-type CSVGenerator struct {
-	jobsPath   string
-	totalsPath string
-	logger     zerolog.Logger
-}
-
-// NewCSVGenerator creates a new CSV report generator
-func NewCSVGenerator(jobsPath, totalsPath string, logger zerolog.Logger) *CSVGenerator {
-	return &CSVGenerator{
-		jobsPath:   jobsPath,
-		totalsPath: totalsPath,
-		logger:     logger,
-	}
-}
-
-// Generate implements the Generator interface for CSV reports
-func (g *CSVGenerator) Generate(data *ReportData) error {
-	if err := g.generateJobsReport(data.Jobs); err != nil {
-		return err
-	}
-	return g.generateTotalsReport(data.Totals)
-}
-
-// HTMLGenerator generates HTML reports
-type HTMLGenerator struct {
-	outputPath string
-	template   string
-	logger     zerolog.Logger
-}
-
-func (rd *ReportData) MarshalJSON() ([]byte, error) {
-	type Alias ReportData
-	return json.Marshal(&struct {
-		Jobs []JobDetails `json:"jobs"`
-		*Alias
-	}{
-		Jobs:  rd.Jobs,
-		Alias: (*Alias)(rd),
-	})
-}
-
-// NewHTMLGenerator creates a new HTML report generator
-func NewHTMLGenerator(outputPath string, logger zerolog.Logger) (*HTMLGenerator, error) {
-	return &HTMLGenerator{
-		outputPath: outputPath,
-		template:   templateHTML,
-		logger:     logger,
-	}, nil
-}
-
-// Generate implements the Generator interface for HTML reports
-func (g *HTMLGenerator) Generate(data *ReportData) error {
-	// Create data directory
-	dir := filepath.Dir(g.outputPath)
-	dataDir := filepath.Join(dir, "data")
-	if err := os.MkdirAll(dataDir, 0755); err != nil {
-		return err
-	}
-
-	// Write summary.json
-	summaryPath := filepath.Join(dataDir, "summary.json")
-	summaryData := struct {
-		Totals TotalCosts `json:"totals"`
-	}{
-		Totals: data.Totals,
-	}
-	if err := g.writeJSON(summaryPath, summaryData); err != nil {
-		return err
-	}
-
-	// Split jobs into chunks and write them
-	for i := 0; i < len(data.Jobs); i += jobsPerChunk {
-		end := i + jobsPerChunk
-		if end > len(data.Jobs) {
-			end = len(data.Jobs)
-		}
-
-		chunk := data.Jobs[i:end]
-		chunkPath := filepath.Join(dataDir, fmt.Sprintf("jobs-%d.json", i/jobsPerChunk+1))
-		if err := g.writeJSON(chunkPath, chunk); err != nil {
-			return err
-		}
-	}
-
-	// Generate the HTML file
-	return g.generateHTML(filepath.Base(g.outputPath))
-}
-
-func (g *HTMLGenerator) writeJSON(path string, data interface{}) error {
-	file, err := os.Create(path)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	encoder := json.NewEncoder(file)
-	return encoder.Encode(data)
-}
-
-func (g *HTMLGenerator) generateHTML(dataPath string) error {
-	file, err := os.Create(g.outputPath)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	tmpl := template.Must(template.New("report").Parse(g.template))
-	if err := tmpl.Execute(file, nil); err != nil {
-		return err
-	}
-
-	g.logger.Info().Msgf("%s and data files created successfully!", g.outputPath)
-	return nil
-}
-
-type flatJobDetails struct {
+// FlatJobDetails is a flattened representation of JobDetails with all fields as strings
+type FlatJobDetails struct {
 	OwnerName                   string `json:"owner_name,omitempty"`
 	RepoID                      string `json:"repo_id,omitempty"`
 	RepoName                    string `json:"repo_name,omitempty"`
@@ -204,4 +80,71 @@ type flatJobDetails struct {
 	PricePerMinuteInUSD         string `json:"price_per_minute_in_usd,omitempty"`
 	BillableInUSD               string `json:"billable_in_usd,omitempty"`
 	Runner                      string `json:"runner,omitempty"`
+}
+
+// FlattenJobs converts JobDetails slice to FlatJobDetails slice
+func FlattenJobs(jobs []JobDetails) []FlatJobDetails {
+	var flattened []FlatJobDetails
+	for _, job := range jobs {
+		flattened = append(flattened, FlattenJob(job))
+	}
+	return flattened
+}
+
+// FlattenJob converts a single JobDetails to FlatJobDetails
+func FlattenJob(job JobDetails) FlatJobDetails {
+	stepsBytes, _ := json.Marshal(job.Job.Steps)
+	steps := string(stepsBytes)
+
+	return FlatJobDetails{
+		OwnerName:                   *job.Repo.Owner.Login,
+		RepoID:                      strconv.FormatInt(*job.Repo.ID, 10),
+		RepoName:                    *job.Repo.Name,
+		WorkflowID:                  strconv.FormatInt(*job.Workflow.ID, 10),
+		WorkflowName:                *job.Workflow.Name,
+		WorkflowRunID:               strconv.FormatInt(*job.WorkflowRun.ID, 10),
+		WorkflowRunName:             *job.WorkflowRun.Name,
+		HeadBranch:                  *job.WorkflowRun.HeadBranch,
+		HeadSHA:                     *job.WorkflowRun.HeadSHA,
+		WorkflowRunRunNumber:        strconv.Itoa(*job.WorkflowRun.RunNumber),
+		WorkflowRunRunAttempt:       strconv.Itoa(*job.WorkflowRun.RunAttempt),
+		WorkflowRunEvent:            *job.WorkflowRun.Event,
+		WorkflowRunDisplayTitle:     *job.WorkflowRun.DisplayTitle,
+		WorkflowRunStatus:           *job.WorkflowRun.Status,
+		WorkflowRunConclusion:       *job.WorkflowRun.Conclusion,
+		WorkflowRunCreatedAt:        job.WorkflowRun.CreatedAt.String(),
+		WorkflowRunUpdatedAt:        job.WorkflowRun.UpdatedAt.String(),
+		WorkflowRunRunStartedAt:     job.WorkflowRun.RunStartedAt.String(),
+		ActorLogin:                  *job.WorkflowRun.Actor.Login,
+		JobID:                       strconv.FormatInt(*job.Job.ID, 10),
+		JobName:                     *job.Job.Name,
+		JobStatus:                   *job.Job.Status,
+		JobConclusion:               *job.Job.Conclusion,
+		JobCreatedAt:                job.Job.CreatedAt.String(),
+		JobStartedAt:                job.Job.StartedAt.String(),
+		JobCompletedAt:              job.Job.CompletedAt.String(),
+		JobSteps:                    steps,
+		JobLabels:                   strings.Join(job.Job.Labels, "; "),
+		JobRunnerID:                 strconv.FormatInt(*job.Job.RunnerID, 10),
+		JobRunnerName:               *job.Job.RunnerName,
+		JobRunnerGroupID:            strconv.FormatInt(*job.Job.RunnerGroupID, 10),
+		JobRunnerGroupName:          *job.Job.RunnerGroupName,
+		JobRunAttempt:               strconv.FormatInt(*job.Job.RunAttempt, 10),
+		JobDurationSeconds:          strconv.FormatFloat(job.JobDuration.Seconds(), 'f', 0, 64),
+		RoundedUpJobDurationSeconds: strconv.FormatFloat(job.RoundedUpJobDuration.Seconds(), 'f', 0, 64),
+		PricePerMinuteInUSD:         strconv.FormatFloat(job.PricePerMinuteInUSD, 'f', 3, 64),
+		BillableInUSD:               strconv.FormatFloat(job.BillableInUSD, 'f', 3, 64),
+		Runner:                      job.Runner,
+	}
+}
+
+func (rd *ReportData) MarshalJSON() ([]byte, error) {
+	type Alias ReportData
+	return json.Marshal(&struct {
+		Jobs []JobDetails `json:"jobs"`
+		*Alias
+	}{
+		Jobs:  rd.Jobs,
+		Alias: (*Alias)(rd),
+	})
 }
