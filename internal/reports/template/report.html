@@ -66,12 +66,6 @@
     </div>
 
     <script>
-      // State
-      let jobs = [];
-      let totals = null;
-      let currentChunk = 0;
-      let isLoadingChunk = false;
-      
       // Stats util functions
       const sum = arr => arr.reduce((acc, curr) => acc + curr.run_duration, 0);
       const mean = arr => (sum(arr) / arr.length).toFixed(3);
@@ -86,8 +80,7 @@
             throw new Error(`HTTP error! status: ${response.status}`);
           }
           const data = await response.json();
-          totals = data.totals;
-          updateTotals();
+          return data.totals;
         } catch (error) {
           const loading = document.getElementById('loading');
           loading.innerHTML = `
@@ -101,42 +94,26 @@
               </div>
               <p class="mt-3">Then refresh this page.</p>
             </div>`;
+          throw error;
         }
       }
 
-      async function loadNextChunk() {
-        if (isLoadingChunk) return;
-        
-        isLoadingChunk = true;
-        currentChunk++;
-        
-        try {
-          const response = await fetch(`data/jobs-${currentChunk}.json`);
-          if (!response.ok) {
-            isLoadingChunk = false;
-            return false;
-          }
-          
-          const chunk = await response.json();
-          jobs = jobs.concat(chunk);
-          processJobs();
-          isLoadingChunk = false;
-          return true;
-        } catch (e) {
-          console.error('Error loading chunk:', e);
-          isLoadingChunk = false;
-          return false;
+      async function loadJobs() {
+        const response = await fetch('data/jobs.json');
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
+        return response.json();
       }
 
       // UI update functions
-      function updateTotals() {
+      function updateTotals(totals) {
         document.getElementById('total-duration').textContent = totals.job_duration;
         document.getElementById('total-billable-duration').textContent = totals.rounded_up_job_duration;
         document.getElementById('total-billable-usd').textContent = totals.billable_in_usd.toFixed(3);
       }
 
-      function processJobs() {
+      function processJobs(jobs) {
         const transformedJobs = jobs.map(job => ({
           workflow_name: job.workflow?.name || 'Unknown Workflow',
           workflow_run_id: job.workflow_run?.id || 0,
@@ -174,29 +151,29 @@
 
       function updateChart(summed) {
         const chart = document.getElementById('chart');
+        const durations = Object.entries(summed).map(([name, runs]) => ({
+          label: name + ' Actual Duration',
+          data: Object.entries(runs).map(([runId, run]) => ({
+            x: run.created_at,
+            y: run.run_duration
+          })),
+          borderWidth: 1
+        }));
+
+        const billable_durations = Object.entries(summed).map(([name, runs]) => ({
+          label: name + ' Billable Duration',
+          data: Object.entries(runs).map(([runId, run]) => ({
+            x: run.created_at,
+            y: run.rounded_up_duration
+          })),
+          borderWidth: 1,
+          fill: '-1'
+        }));
+
+        const datasets = durations.concat(billable_durations);
+        datasets.sort((a, b) => a.label < b.label ? -1 : a.label > b.label ? 1 : 0);
+
         if (!chart.chart) {
-          const durations = Object.entries(summed).map(([name, runs]) => ({
-            label: name + ' Actual Duration',
-            data: Object.entries(runs).map(([runId, run]) => ({
-              x: run.created_at,
-              y: run.run_duration
-            })),
-            borderWidth: 1
-          }));
-
-          const billable_durations = Object.entries(summed).map(([name, runs]) => ({
-            label: name + ' Billable Duration',
-            data: Object.entries(runs).map(([runId, run]) => ({
-              x: run.created_at,
-              y: run.rounded_up_duration
-            })),
-            borderWidth: 1,
-            fill: '-1'
-          }));
-
-          const datasets = durations.concat(billable_durations);
-          datasets.sort((a, b) => a.label < b.label ? -1 : a.label > b.label ? 1 : 0);
-
           chart.chart = new Chart(chart, {
             type: 'line',
             data: { datasets },
@@ -223,17 +200,7 @@
             }
           });
         } else {
-          // Update existing chart
-          chart.chart.data.datasets.forEach(dataset => {
-            const name = dataset.label.replace(' Actual Duration', '').replace(' Billable Duration', '');
-            const isBillable = dataset.label.includes('Billable');
-            const runs = summed[name] || {};
-            
-            dataset.data = Object.entries(runs).map(([runId, run]) => ({
-              x: run.created_at,
-              y: isBillable ? run.rounded_up_duration : run.run_duration
-            }));
-          });
+          chart.chart.data.datasets = datasets;
           chart.chart.update();
         }
       }
@@ -293,23 +260,16 @@
 
       // Initialization
       async function init() {
-        await loadSummary();
-        if (await loadNextChunk()) {
+        try {
+          const [totals, jobs] = await Promise.all([loadSummary(), loadJobs()]);
+          updateTotals(totals);
+          processJobs(jobs);
           document.getElementById('loading').style.display = 'none';
           document.getElementById('content').style.display = 'block';
+        } catch (error) {
+          console.error('Failed to initialize:', error);
         }
       }
-
-      // Load more data when scrolling near bottom
-      window.addEventListener('scroll', () => {
-        const threshold = 1000; // pixels from bottom
-        const position = window.scrollY + window.innerHeight;
-        const height = document.documentElement.scrollHeight;
-        
-        if (position > height - threshold) {
-          loadNextChunk();
-        }
-      });
 
       init();
     </script>

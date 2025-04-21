@@ -3,7 +3,6 @@ package reports
 import (
 	_ "embed"
 	"encoding/json"
-	"fmt"
 	"html/template"
 	"os"
 	"path/filepath"
@@ -13,8 +12,6 @@ import (
 
 //go:embed template/report.html
 var templateHTML string
-
-const jobsPerChunk = 100
 
 // HTMLGenerator generates HTML reports
 type HTMLGenerator struct {
@@ -52,18 +49,10 @@ func (g *HTMLGenerator) Generate(data *ReportData) error {
 		return err
 	}
 
-	// Split jobs into chunks and write them
-	for i := 0; i < len(data.Jobs); i += jobsPerChunk {
-		end := i + jobsPerChunk
-		if end > len(data.Jobs) {
-			end = len(data.Jobs)
-		}
-
-		chunk := data.Jobs[i:end]
-		chunkPath := filepath.Join(dataDir, fmt.Sprintf("jobs-%d.json", i/jobsPerChunk+1))
-		if err := g.writeJSON(chunkPath, chunk); err != nil {
-			return err
-		}
+	// Write all jobs to a single file
+	jobsPath := filepath.Join(dataDir, "jobs.json")
+	if err := g.writeJSON(jobsPath, data.Jobs); err != nil {
+		return err
 	}
 
 	// Generate the HTML file
