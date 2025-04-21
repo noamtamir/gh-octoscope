@@ -108,8 +108,8 @@
 
       // UI update functions
       function updateTotals(totals) {
-        document.getElementById('total-duration').textContent = totals.job_duration;
-        document.getElementById('total-billable-duration').textContent = totals.rounded_up_job_duration;
+        document.getElementById('total-duration').textContent = totals.job_duration / 1000000000;
+        document.getElementById('total-billable-duration').textContent = totals.rounded_up_job_duration / 1000000000;
         document.getElementById('total-billable-usd').textContent = totals.billable_in_usd.toFixed(3);
       }
 
