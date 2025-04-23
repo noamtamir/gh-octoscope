@@ -115,9 +115,9 @@
 
       function processJobs(jobs) {
         const transformedJobs = jobs.map(job => ({
-          workflow_name: job.workflow?.name || 'Unknown Workflow',
-          workflow_run_id: job.workflow_run?.id || 0,
-          created_at: new Date(job.workflow_run?.created_at || new Date()),
+          workflow_name: job.workflow_name || 'Unknown Workflow',
+          workflow_run_id: job.workflow_run_id || 0,
+          created_at: new Date(job.workflow_run_created_at || new Date()),
           job_duration: Number(job.job_duration || 0),
           rounded_up_job_duration: Number(job.rounded_up_job_duration || 0),
           billable_in_usd: Number(job.billable_in_usd || 0)
@@ -139,8 +139,8 @@
             };
           }
 
-          acc[workflowName][runId].run_duration += job.job_duration / 1000000000;
-          acc[workflowName][runId].rounded_up_duration += job.rounded_up_job_duration / 1000000000;
+          acc[workflowName][runId].run_duration += job.job_duration;
+          acc[workflowName][runId].rounded_up_duration += job.rounded_up_job_duration;
           acc[workflowName][runId].billable_in_usd += job.billable_in_usd;
           return acc;
         }, {});
