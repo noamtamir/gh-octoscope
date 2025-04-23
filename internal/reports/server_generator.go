@@ -82,10 +82,8 @@ func (g *ServerGenerator) Generate(data *ReportData) error {
 			Msg("Batch uploaded successfully")
 	}
 
-	reportURL := fmt.Sprintf("%s/%s/%s/reports/%s",
+	reportURL := fmt.Sprintf("%s/report/%s",
 		g.config.AppURL,
-		g.config.OwnerName,
-		g.config.RepoName,
 		reportID)
 
 	g.logger.Info().
