@@ -16,7 +16,7 @@ const (
 
 // Convert timestamps and avoid circular import by defining the interface we need
 type octoscopeClient interface {
-	BatchCreate(ctx context.Context, jobs []JobDetails, reportID string) error
+	BatchCreate(ctx context.Context, jobs []JobDetails, reportID string, shouldObfuscate bool) error
 }
 
 // ServerGenerator generates reports on our servers
@@ -58,7 +58,7 @@ func (g *ServerGenerator) Generate(data *ReportData) error {
 		// Retry logic for each batch
 		var err error
 		for retry := 0; retry < maxRetries; retry++ {
-			err = g.client.BatchCreate(context.Background(), batch, reportID)
+			err = g.client.BatchCreate(context.Background(), batch, reportID, data.ObfuscateData)
 			if err == nil {
 				break
 			}

@@ -16,8 +16,9 @@ type Generator interface {
 
 // ReportData contains all the data needed for report generation
 type ReportData struct {
-	Jobs   []JobDetails `json:"jobs"`
-	Totals TotalCosts   `json:"totals"`
+	Jobs          []JobDetails `json:"jobs"`
+	Totals        TotalCosts   `json:"totals"`
+	ObfuscateData bool         `json:"-"` // Controls whether sensitive data should be obfuscated
 }
 
 // JobDetails contains the details of a workflow job
@@ -83,39 +84,53 @@ type FlatJobDetails struct {
 }
 
 // FlattenJobs converts JobDetails slice to FlatJobDetails slice
-func FlattenJobs(jobs []JobDetails) []FlatJobDetails {
+func FlattenJobs(jobs []JobDetails, shouldObfuscate bool) []FlatJobDetails {
 	var flattened []FlatJobDetails
 	for _, job := range jobs {
-		flattened = append(flattened, FlattenJob(job))
+		flattened = append(flattened, FlattenJob(job, shouldObfuscate))
 	}
 	return flattened
 }
 
 // FlattenJob converts a single JobDetails to FlatJobDetails
-func FlattenJob(job JobDetails) FlatJobDetails {
+func FlattenJob(job JobDetails, shouldObfuscate bool) FlatJobDetails {
 	stepsBytes, _ := json.Marshal(job.Job.Steps)
 	steps := string(stepsBytes)
 
+	ownerName := *job.Repo.Owner.Login
+	repoName := *job.Repo.Name
+	actorLogin := *job.WorkflowRun.Actor.Login
+	workflowRunName := *job.WorkflowRun.Name
+	workflowRunDisplayTitle := *job.WorkflowRun.DisplayTitle
+
+	if shouldObfuscate {
+		ownerName = obfuscateString(ownerName)
+		repoName = obfuscateString(repoName)
+		actorLogin = obfuscateString(actorLogin)
+		workflowRunName = obfuscateString(workflowRunName)
+		workflowRunDisplayTitle = obfuscateString(workflowRunDisplayTitle)
+	}
+
 	return FlatJobDetails{
-		OwnerName:                   *job.Repo.Owner.Login,
+		OwnerName:                   ownerName,
 		RepoID:                      strconv.FormatInt(*job.Repo.ID, 10),
-		RepoName:                    *job.Repo.Name,
+		RepoName:                    repoName,
 		WorkflowID:                  strconv.FormatInt(*job.Workflow.ID, 10),
 		WorkflowName:                *job.Workflow.Name,
 		WorkflowRunID:               strconv.FormatInt(*job.WorkflowRun.ID, 10),
-		WorkflowRunName:             *job.WorkflowRun.Name,
+		WorkflowRunName:             workflowRunName,
 		HeadBranch:                  *job.WorkflowRun.HeadBranch,
 		HeadSHA:                     *job.WorkflowRun.HeadSHA,
 		WorkflowRunRunNumber:        strconv.Itoa(*job.WorkflowRun.RunNumber),
 		WorkflowRunRunAttempt:       strconv.Itoa(*job.WorkflowRun.RunAttempt),
 		WorkflowRunEvent:            *job.WorkflowRun.Event,
-		WorkflowRunDisplayTitle:     *job.WorkflowRun.DisplayTitle,
+		WorkflowRunDisplayTitle:     workflowRunDisplayTitle,
 		WorkflowRunStatus:           *job.WorkflowRun.Status,
 		WorkflowRunConclusion:       *job.WorkflowRun.Conclusion,
 		WorkflowRunCreatedAt:        job.WorkflowRun.CreatedAt.String(),
 		WorkflowRunUpdatedAt:        job.WorkflowRun.UpdatedAt.String(),
 		WorkflowRunRunStartedAt:     job.WorkflowRun.RunStartedAt.String(),
-		ActorLogin:                  *job.WorkflowRun.Actor.Login,
+		ActorLogin:                  actorLogin,
 		JobID:                       strconv.FormatInt(*job.Job.ID, 10),
 		JobName:                     *job.Job.Name,
 		JobStatus:                   *job.Job.Status,
@@ -136,6 +151,32 @@ func FlattenJob(job JobDetails) FlatJobDetails {
 		BillableInUSD:               strconv.FormatFloat(job.BillableInUSD, 'f', 3, 64),
 		Runner:                      job.Runner,
 	}
+}
+
+// obfuscateString masks a string by keeping the first three characters and domain extension (if exists) visible
+func obfuscateString(input string) string {
+	if len(input) <= 3 {
+		return input
+	}
+
+	// Check if the string is an email address
+	parts := strings.Split(input, "@")
+	if len(parts) == 2 {
+		// Handle email address
+		username := parts[0]
+		domain := parts[1]
+
+		// Keep first 3 chars of username
+		visiblePart := username[:3]
+		maskedPart := strings.Repeat("*", len(username)-3)
+
+		return visiblePart + maskedPart + "@" + domain
+	}
+
+	// For non-email strings
+	visiblePart := input[:3]
+	maskedPart := strings.Repeat("*", len(input)-3)
+	return visiblePart + maskedPart
 }
 
 func (rd *ReportData) MarshalJSON() ([]byte, error) {

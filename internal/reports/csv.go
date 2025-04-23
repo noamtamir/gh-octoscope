@@ -25,21 +25,23 @@ func NewCSVGenerator(jobsPath, totalsPath string, logger zerolog.Logger) *CSVGen
 	}
 }
 
-// Generate implements the Generator interface for CSV reports
+// Generate generates a CSV report
 func (g *CSVGenerator) Generate(data *ReportData) error {
-	if err := g.generateJobsReport(data.Jobs); err != nil {
+	g.logger.Info().Msg("Generating CSV report")
+
+	if err := g.generateJobsReport(data.Jobs, data.ObfuscateData); err != nil {
 		return err
 	}
 	return g.generateTotalsReport(data.Totals)
 }
 
-func (g *CSVGenerator) generateJobsReport(jobs []JobDetails) error {
+func (g *CSVGenerator) generateJobsReport(jobs []JobDetails, shouldObfuscate bool) error {
 	if len(jobs) == 0 {
 		g.logger.Info().Msg("No runs in the requested time frame")
 		return nil
 	}
 
-	flattened := FlattenJobs(jobs)
+	flattened := FlattenJobs(jobs, shouldObfuscate)
 	data := g.prepareCSVData(flattened)
 
 	return g.writeCSVFile(g.jobsPath, data)

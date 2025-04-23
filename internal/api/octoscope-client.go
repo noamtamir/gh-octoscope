@@ -13,7 +13,7 @@ import (
 )
 
 type OctoscopeClient interface {
-	BatchCreate(ctx context.Context, jobs []reports.JobDetails, reportID string) error
+	BatchCreate(ctx context.Context, jobs []reports.JobDetails, reportID string, shouldObfuscate bool) error
 }
 
 type octoscopeClient struct {
@@ -36,8 +36,8 @@ func NewOctoscopeClient(cfg OctoscopeConfig) OctoscopeClient {
 	}
 }
 
-func (c *octoscopeClient) BatchCreate(ctx context.Context, jobs []reports.JobDetails, reportID string) error {
-	flattened := reports.FlattenJobs(jobs)
+func (c *octoscopeClient) BatchCreate(ctx context.Context, jobs []reports.JobDetails, reportID string, shouldObfuscate bool) error {
+	flattened := reports.FlattenJobs(jobs, shouldObfuscate)
 
 	payload := struct {
 		ReportID string                   `json:"report_id"`

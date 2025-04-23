@@ -29,8 +29,12 @@ func NewHTMLGenerator(outputPath string, logger zerolog.Logger) (*HTMLGenerator,
 	}, nil
 }
 
-// Generate implements the Generator interface for HTML reports
+// Generate generates an HTML report
 func (g *HTMLGenerator) Generate(data *ReportData) error {
+	g.logger.Info().Msg("Generating HTML report")
+
+	flattened := FlattenJobs(data.Jobs, data.ObfuscateData)
+
 	// Create data directory
 	dir := filepath.Dir(g.outputPath)
 	dataDir := filepath.Join(dir, "data")
@@ -51,12 +55,12 @@ func (g *HTMLGenerator) Generate(data *ReportData) error {
 
 	// Write all jobs to a single file
 	jobsPath := filepath.Join(dataDir, "jobs.json")
-	if err := g.writeJSON(jobsPath, data.Jobs); err != nil {
+	if err := g.writeJSON(jobsPath, flattened); err != nil {
 		return err
 	}
 
 	// Generate the HTML file
-	return g.generateHTML(filepath.Base(g.outputPath))
+	return g.generateHTML()
 }
 
 func (g *HTMLGenerator) writeJSON(path string, data interface{}) error {
@@ -70,7 +74,7 @@ func (g *HTMLGenerator) writeJSON(path string, data interface{}) error {
 	return encoder.Encode(data)
 }
 
-func (g *HTMLGenerator) generateHTML(dataPath string) error {
+func (g *HTMLGenerator) generateHTML() error {
 	file, err := os.Create(g.outputPath)
 	if err != nil {
 		return err

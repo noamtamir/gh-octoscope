@@ -30,6 +30,7 @@ type Config struct {
 	FromDate   string
 	PageSize   int
 	Fetch      bool
+	Obfuscate  bool
 }
 
 func parseFlags() Config {
@@ -45,6 +46,7 @@ func parseFlags() Config {
 	flag.BoolVar(&cfg.HTMLReport, "html", false, "Generate html report")
 	flag.BoolVar(&cfg.Fetch, "fetch", true, "Fetch new data (set to false to use existing data)")
 	flag.StringVar(&cfg.FromDate, "from", "", "Generate report from this date. Format: YYYY-MM-DD")
+	flag.BoolVar(&cfg.Obfuscate, "obfuscate", false, "Obfuscate sensitive data in the report")
 	flag.Parse()
 
 	return cfg
@@ -225,8 +227,9 @@ func run(cfg Config) error {
 	if cfg.CSVReport {
 		csvGen := reports.NewCSVGenerator("reports/report.csv", "reports/totals.csv", logger)
 		if err := csvGen.Generate(&reports.ReportData{
-			Jobs:   jobDetails,
-			Totals: totalCosts,
+			Jobs:          jobDetails,
+			Totals:        totalCosts,
+			ObfuscateData: cfg.Obfuscate,
 		}); err != nil {
 			return err
 		}
@@ -238,8 +241,9 @@ func run(cfg Config) error {
 			return err
 		}
 		if err := htmlGen.Generate(&reports.ReportData{
-			Jobs:   jobDetails,
-			Totals: totalCosts,
+			Jobs:          jobDetails,
+			Totals:        totalCosts,
+			ObfuscateData: cfg.Obfuscate,
 		}); err != nil {
 			return err
 		}
@@ -270,8 +274,9 @@ func run(cfg Config) error {
 		}, logger)
 
 		if err := serverGen.Generate(&reports.ReportData{
-			Jobs:   jobDetails,
-			Totals: totalCosts,
+			Jobs:          jobDetails,
+			Totals:        totalCosts,
+			ObfuscateData: cfg.Obfuscate,
 		}); err != nil {
 			return fmt.Errorf("failed to generate server report: %w", err)
 		}
