@@ -33,6 +33,11 @@ type Config struct {
 	Obfuscate  bool
 }
 
+type GitHubCLIConfig struct {
+	token string
+	repo  repository.Repository
+}
+
 func parseFlags() Config {
 	cfg := Config{
 		PageSize: 30,   // default page size
@@ -74,31 +79,23 @@ func setupLogger(cfg Config) zerolog.Logger {
 	return logger
 }
 
-func run(cfg Config) error {
+func run(cfg Config, ghCLIConfig GitHubCLIConfig) error {
 	logger := setupLogger(cfg)
 
 	err := godotenv.Load()
 	if err != nil {
-		logger.Fatal().Msg("Error loading .env file")
+		logger.Debug().Msg(".env file not found, excepted when not running in development")
 	}
 
 	var jobDetails []reports.JobDetails
 	var totalCosts reports.TotalCosts
 
 	if cfg.Fetch {
-		// Setup GitHub client
-		host, _ := auth.DefaultHost()
-		token, _ := auth.TokenForHost(host)
-		repo, err := repository.Current()
-		if err != nil {
-			return err
-		}
-
 		// Initialize components
-		ghClient := api.NewClient(repo, api.Config{
+		ghClient := api.NewClient(ghCLIConfig.repo, api.Config{
 			PageSize: cfg.PageSize,
 			Logger:   logger,
-			Token:    token,
+			Token:    ghCLIConfig.token,
 		})
 
 		calculator := billing.NewCalculator(nil, logger)
@@ -250,11 +247,6 @@ func run(cfg Config) error {
 	}
 
 	if cfg.FullReport {
-		repo, err := repository.Current()
-		if err != nil {
-			return err
-		}
-
 		apiBaseUrl := os.Getenv("OCTOSCOPE_API_URL")
 		appBaseUrl := os.Getenv("OCTOSCOPE_APP_URL")
 
@@ -269,8 +261,8 @@ func run(cfg Config) error {
 
 		serverGen := reports.NewServerGenerator(osClient, reports.ServerConfig{
 			AppURL:    appBaseUrl,
-			OwnerName: repo.Owner,
-			RepoName:  repo.Name,
+			OwnerName: ghCLIConfig.repo.Owner,
+			RepoName:  ghCLIConfig.repo.Name,
 		}, logger)
 
 		if err := serverGen.Generate(&reports.ReportData{
@@ -333,7 +325,21 @@ func processJobs(
 }
 
 func main() {
-	if err := run(parseFlags()); err != nil {
+	// GitHub CLI authentication
+	host, _ := auth.DefaultHost()
+	token, _ := auth.TokenForHost(host)
+	repo, err := repository.Current()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	ghCLIConfig := GitHubCLIConfig{
+		token: token,
+		repo:  repo,
+	}
+
+	if err := run(parseFlags(), ghCLIConfig); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}

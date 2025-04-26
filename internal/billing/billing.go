@@ -126,7 +126,9 @@ func (c *Calculator) roundUpToMinute(d time.Duration) time.Duration {
 
 	secondsPortion := int(d.Seconds()) % minute
 	rounded := d.Round(time.Minute)
-	if secondsPortion < halfMinute {
+
+	// Only add an extra minute if there's a partial minute and it's less than half
+	if secondsPortion > 0 && secondsPortion < halfMinute {
 		rounded += time.Minute
 	}
 	return rounded
