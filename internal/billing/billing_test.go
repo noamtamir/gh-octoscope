@@ -1,7 +1,7 @@
 package billing
 
 import (
-	"io/ioutil"
+	"io"
 	"testing"
 	"time"
 
@@ -12,7 +12,7 @@ import (
 
 func TestCalculateJobCost(t *testing.T) {
 	// Create a silent logger for tests
-	logger := zerolog.New(ioutil.Discard)
+	logger := zerolog.New(io.Discard)
 
 	// Create the calculator with default pricing
 	calculator := NewCalculator(nil, logger)
@@ -160,7 +160,7 @@ func TestCalculateJobCost(t *testing.T) {
 }
 
 func TestRoundUpToMinute(t *testing.T) {
-	logger := zerolog.New(ioutil.Discard)
+	logger := zerolog.New(io.Discard)
 	calculator := NewCalculator(nil, logger)
 
 	tests := []struct {
@@ -214,7 +214,7 @@ func TestRoundUpToMinute(t *testing.T) {
 }
 
 func TestGetPricePerMinute(t *testing.T) {
-	logger := zerolog.New(ioutil.Discard)
+	logger := zerolog.New(io.Discard)
 
 	// Test with default pricing
 	t.Run("DefaultPricing", func(t *testing.T) {
@@ -251,7 +251,7 @@ func TestGetPricePerMinute(t *testing.T) {
 }
 
 func TestCalculateBillablePrice(t *testing.T) {
-	logger := zerolog.New(ioutil.Discard)
+	logger := zerolog.New(io.Discard)
 	calculator := NewCalculator(nil, logger)
 
 	tests := []struct {

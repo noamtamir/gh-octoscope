@@ -8,10 +8,8 @@ import (
 	"github.com/rs/zerolog"
 )
 
-// RunnerType represents the type of GitHub Actions runner
 type RunnerType string
 
-// RunnerDuration represents the duration a runner was used
 type RunnerDuration struct {
 	Runner   string
 	Duration *int64
@@ -38,12 +36,10 @@ const (
 	RunnerSelfHosted      RunnerType = "SELF_HOSTED"
 )
 
-// PriceConfig holds the pricing configuration for different runner types
 type PriceConfig struct {
 	Prices map[RunnerType]float64
 }
 
-// DefaultPriceConfig returns the default pricing configuration
 func DefaultPriceConfig() *PriceConfig {
 	return &PriceConfig{
 		Prices: map[RunnerType]float64{
@@ -69,13 +65,11 @@ func DefaultPriceConfig() *PriceConfig {
 	}
 }
 
-// Calculator handles billing calculations for GitHub Actions
 type Calculator struct {
 	priceConfig *PriceConfig
 	logger      zerolog.Logger
 }
 
-// NewCalculator creates a new billing calculator
 func NewCalculator(cfg *PriceConfig, logger zerolog.Logger) *Calculator {
 	if cfg == nil {
 		cfg = DefaultPriceConfig()
@@ -86,7 +80,6 @@ func NewCalculator(cfg *PriceConfig, logger zerolog.Logger) *Calculator {
 	}
 }
 
-// JobCost represents the cost details for a workflow job
 type JobCost struct {
 	ActualDuration   time.Duration
 	BillableDuration time.Duration
@@ -94,7 +87,6 @@ type JobCost struct {
 	TotalBillableUSD float64
 }
 
-// CalculateJobCost calculates the cost for a specific job
 func (c *Calculator) CalculateJobCost(job *github.WorkflowJob, runnerType RunnerType) (*JobCost, error) {
 	if job.CompletedAt == nil || job.CreatedAt == nil {
 		return nil, fmt.Errorf("job timing information is incomplete")

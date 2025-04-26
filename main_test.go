@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"flag"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
@@ -234,7 +234,7 @@ func TestProcessJobs(t *testing.T) {
 	}
 
 	// Setup logger
-	logger := zerolog.New(ioutil.Discard)
+	logger := zerolog.New(io.Discard)
 
 	// Setup calculator
 	calculator := billing.NewCalculator(nil, logger)
@@ -269,7 +269,7 @@ func TestRun_FetchMode(t *testing.T) {
 	t.Skip() // Skip this test as it requires a live GitHub API connection
 	// TODO: Implement a proper mocks
 	// Create temporary directory for output files
-	tmpDir, err := ioutil.TempDir("", "octoscope-test")
+	tmpDir, err := os.MkdirTemp("", "octoscope-test")
 	require.NoError(t, err)
 	defer os.RemoveAll(tmpDir)
 
@@ -456,7 +456,7 @@ func TestRun_NoFetchMode(t *testing.T) {
 	t.Skip() // Skip this test as it requires a live GitHub API connection
 	// TODO: Implement a proper mocks
 	// Create temporary directory for input and output files
-	tmpDir, err := ioutil.TempDir("", "octoscope-test")
+	tmpDir, err := os.MkdirTemp("", "octoscope-test")
 	require.NoError(t, err)
 	defer os.RemoveAll(tmpDir)
 
@@ -475,8 +475,8 @@ func TestRun_NoFetchMode(t *testing.T) {
 	summaryData := `{"totals":{"job_duration":1500000000000,"rounded_up_job_duration":1800000000000,"billable_in_usd":0.24}}`
 	jobsData := `[{"owner_name":"testowner","repo_id":"123456","repo_name":"testrepo","workflow_id":"1234","workflow_name":"Test Workflow","workflow_run_id":"5678","workflow_run_name":"Test Run","job_id":"9012","job_name":"Job 1","job_duration":"300","rounded_up_job_duration":"360","price_per_minute_in_usd":"0.008","billable_in_usd":"0.048","runner":"UBUNTU"}]`
 
-	require.NoError(t, ioutil.WriteFile(filepath.Join(dataDir, "summary.json"), []byte(summaryData), 0644))
-	require.NoError(t, ioutil.WriteFile(filepath.Join(dataDir, "jobs-1.json"), []byte(jobsData), 0644))
+	require.NoError(t, os.WriteFile(filepath.Join(dataDir, "summary.json"), []byte(summaryData), 0644))
+	require.NoError(t, os.WriteFile(filepath.Join(dataDir, "jobs-1.json"), []byte(jobsData), 0644))
 
 	// Set environment variables
 	os.Setenv("OCTOSCOPE_API_URL", "https://api.example.com")

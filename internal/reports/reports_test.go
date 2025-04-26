@@ -3,7 +3,7 @@ package reports
 import (
 	"context"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -95,7 +95,7 @@ func setupTestData() *ReportData {
 
 func TestCSVGenerator(t *testing.T) {
 	// Create a temporary directory for test outputs
-	tmpDir, err := ioutil.TempDir("", "csv-test")
+	tmpDir, err := os.MkdirTemp("", "csv-test")
 	require.NoError(t, err)
 	defer os.RemoveAll(tmpDir)
 
@@ -104,7 +104,7 @@ func TestCSVGenerator(t *testing.T) {
 	totalsPath := filepath.Join(tmpDir, "totals.csv")
 
 	// Create silent logger
-	logger := zerolog.New(ioutil.Discard)
+	logger := zerolog.New(io.Discard)
 
 	// Create generator
 	generator := NewCSVGenerator(reportPath, totalsPath, logger)
@@ -117,7 +117,7 @@ func TestCSVGenerator(t *testing.T) {
 	assert.FileExists(t, totalsPath)
 
 	// Read report.csv
-	reportContent, err := ioutil.ReadFile(reportPath)
+	reportContent, err := os.ReadFile(reportPath)
 	require.NoError(t, err)
 
 	// Basic content validation (expecting CSV header and at least one row)
@@ -125,7 +125,7 @@ func TestCSVGenerator(t *testing.T) {
 	assert.GreaterOrEqual(t, reportLines, 2, "Expected at least header and one data row in report.csv")
 
 	// Read totals.csv
-	totalsContent, err := ioutil.ReadFile(totalsPath)
+	totalsContent, err := os.ReadFile(totalsPath)
 	require.NoError(t, err)
 
 	// Basic content validation
@@ -135,7 +135,7 @@ func TestCSVGenerator(t *testing.T) {
 
 func TestHTMLGenerator(t *testing.T) {
 	// Create a temporary directory for test outputs
-	tmpDir, err := ioutil.TempDir("", "html-test")
+	tmpDir, err := os.MkdirTemp("", "html-test")
 	require.NoError(t, err)
 	defer os.RemoveAll(tmpDir)
 
@@ -143,7 +143,7 @@ func TestHTMLGenerator(t *testing.T) {
 	reportPath := filepath.Join(tmpDir, "report.html")
 
 	// Create silent logger
-	logger := zerolog.New(ioutil.Discard)
+	logger := zerolog.New(io.Discard)
 
 	// Create generator
 	generator, err := NewHTMLGenerator(reportPath, logger)
@@ -159,7 +159,7 @@ func TestHTMLGenerator(t *testing.T) {
 	assert.FileExists(t, filepath.Join(tmpDir, "data", "jobs.json"))
 
 	// Read the summary.json file and verify its contents
-	summaryContent, err := ioutil.ReadFile(filepath.Join(tmpDir, "data", "summary.json"))
+	summaryContent, err := os.ReadFile(filepath.Join(tmpDir, "data", "summary.json"))
 	require.NoError(t, err)
 
 	var summary struct {
@@ -173,7 +173,7 @@ func TestHTMLGenerator(t *testing.T) {
 	assert.Equal(t, 0.2, summary.Totals.BillableInUSD)
 
 	// Read the jobs.json file and verify its contents
-	jobsContent, err := ioutil.ReadFile(filepath.Join(tmpDir, "data", "jobs.json"))
+	jobsContent, err := os.ReadFile(filepath.Join(tmpDir, "data", "jobs.json"))
 	require.NoError(t, err)
 
 	var jobs []FlatJobDetails
@@ -205,7 +205,7 @@ func (m *mockOctoscopeClient) BatchCreate(ctx context.Context, jobs []JobDetails
 
 func TestServerGenerator(t *testing.T) {
 	// Create silent logger
-	logger := zerolog.New(ioutil.Discard)
+	logger := zerolog.New(io.Discard)
 
 	// Create mock client
 	mockClient := &mockOctoscopeClient{}

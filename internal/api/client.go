@@ -9,7 +9,6 @@ import (
 	"github.com/rs/zerolog"
 )
 
-// Client represents the GitHub API client interface
 type Client interface {
 	GetRepository(ctx context.Context) (*github.Repository, error)
 	ListWorkflows(ctx context.Context) (*github.Workflows, error)
@@ -26,14 +25,12 @@ type client struct {
 	pageSize int
 }
 
-// Config holds the configuration for the GitHub API client
 type Config struct {
 	PageSize int
 	Logger   zerolog.Logger
 	Token    string
 }
 
-// NewClient creates a new GitHub API client
 func NewClient(repo repository.Repository, cfg Config) Client {
 	return &client{
 		ghClient: github.NewClient(nil).WithAuthToken(cfg.Token),

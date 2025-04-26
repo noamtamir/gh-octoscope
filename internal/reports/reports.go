@@ -9,19 +9,16 @@ import (
 	"github.com/google/go-github/v62/github"
 )
 
-// Generator defines the interface for report generation
 type Generator interface {
 	Generate(data *ReportData) error
 }
 
-// ReportData contains all the data needed for report generation
 type ReportData struct {
 	Jobs          []JobDetails `json:"jobs"`
 	Totals        TotalCosts   `json:"totals"`
-	ObfuscateData bool         `json:"-"` // Controls whether sensitive data should be obfuscated
+	ObfuscateData bool         `json:"-"`
 }
 
-// JobDetails contains the details of a workflow job
 type JobDetails struct {
 	Repo                 *github.Repository  `json:"repo,omitempty"`
 	Workflow             *github.Workflow    `json:"workflow,omitempty"`
@@ -34,14 +31,12 @@ type JobDetails struct {
 	Runner               string              `json:"runner,omitempty"`
 }
 
-// TotalCosts represents the total costs across all jobs
 type TotalCosts struct {
 	JobDuration          time.Duration `json:"job_duration"`
 	RoundedUpJobDuration time.Duration `json:"rounded_up_job_duration"`
 	BillableInUSD        float64       `json:"billable_in_usd"`
 }
 
-// FlatJobDetails is a flattened representation of JobDetails with all fields as strings
 type FlatJobDetails struct {
 	OwnerName                   string `json:"owner_name,omitempty"`
 	RepoID                      string `json:"repo_id,omitempty"`
@@ -83,7 +78,6 @@ type FlatJobDetails struct {
 	Runner                      string `json:"runner,omitempty"`
 }
 
-// FlattenJobs converts JobDetails slice to FlatJobDetails slice
 func FlattenJobs(jobs []JobDetails, shouldObfuscate bool) []FlatJobDetails {
 	var flattened []FlatJobDetails
 	for _, job := range jobs {
@@ -92,7 +86,6 @@ func FlattenJobs(jobs []JobDetails, shouldObfuscate bool) []FlatJobDetails {
 	return flattened
 }
 
-// FlattenJob converts a single JobDetails to FlatJobDetails
 func FlattenJob(job JobDetails, shouldObfuscate bool) FlatJobDetails {
 	stepsBytes, _ := json.Marshal(job.Job.Steps)
 	steps := string(stepsBytes)
@@ -153,7 +146,6 @@ func FlattenJob(job JobDetails, shouldObfuscate bool) FlatJobDetails {
 	}
 }
 
-// obfuscateString masks a string by keeping the first three characters and domain extension (if exists) visible
 func obfuscateString(input string) string {
 	if len(input) <= 3 {
 		return input
