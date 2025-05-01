@@ -285,8 +285,9 @@ func generateReports(cfg Config, ghCLIConfig GitHubCLIConfig, jobDetails []repor
 		}
 
 		osClient := api.NewOctoscopeClient(api.OctoscopeConfig{
-			BaseUrl: apiBaseUrl,
-			Logger:  logger,
+			BaseUrl:     apiBaseUrl,
+			Logger:      logger,
+			GitHubToken: ghCLIConfig.token,
 		})
 
 		serverGen := reports.NewServerGenerator(osClient, reports.ServerConfig{

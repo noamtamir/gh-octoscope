@@ -12,7 +12,7 @@
             "program": "${fileDirname}"
         },
         {
-            "name": "Run -debug -csv",
+            "name": "Run flags",
             "type": "go",
             "request": "launch",
             "mode": "auto",

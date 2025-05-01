@@ -17,22 +17,25 @@ type OctoscopeClient interface {
 }
 
 type octoscopeClient struct {
-	osClient *http.Client
-	baseUrl  string
-	logger   zerolog.Logger
+	osClient    *http.Client
+	baseUrl     string
+	logger      zerolog.Logger
+	githubToken string
 }
 
 type OctoscopeConfig struct {
-	BaseUrl string
-	Logger  zerolog.Logger
+	BaseUrl     string
+	Logger      zerolog.Logger
+	GitHubToken string // GitHub token to be used for authentication
 }
 
 // NewOctoscopeClient creates a new Octoscope API client
 func NewOctoscopeClient(cfg OctoscopeConfig) OctoscopeClient {
 	return &octoscopeClient{
-		osClient: &http.Client{},
-		baseUrl:  cfg.BaseUrl,
-		logger:   cfg.Logger,
+		osClient:    &http.Client{},
+		baseUrl:     cfg.BaseUrl,
+		logger:      cfg.Logger,
+		githubToken: cfg.GitHubToken,
 	}
 }
 
@@ -57,6 +60,11 @@ func (c *octoscopeClient) BatchCreate(ctx context.Context, jobs []reports.JobDet
 		return fmt.Errorf("failed to create request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
+
+	// Add GitHub token as Bearer token if available
+	if c.githubToken != "" {
+		req.Header.Set("Authorization", "Bearer "+c.githubToken)
+	}
 
 	resp, err := c.osClient.Do(req)
 	if err != nil {
