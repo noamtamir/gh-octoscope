@@ -1,6 +1,8 @@
 module github.com/noamtamir/gh-octoscope
 
-go 1.21.6
+go 1.23.0
+
+toolchain go1.23.8
 
 require (
 	github.com/cli/go-gh v1.2.1
@@ -10,6 +12,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/rs/zerolog v1.32.0
 	github.com/stretchr/testify v1.10.0
+	golang.org/x/time v0.11.0
 )
 
 require (

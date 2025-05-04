@@ -123,10 +123,18 @@ func fetchData(cfg Config, ghCLIConfig GitHubCLIConfig, logger zerolog.Logger) (
 	var jobDetails []reports.JobDetails
 	var totalCosts reports.TotalCosts
 
-	ghClient := api.NewClient(ghCLIConfig.repo, api.Config{
-		PageSize: cfg.PageSize,
-		Logger:   logger,
-		Token:    ghCLIConfig.token,
+	// Create new throttled client with appropriate rate limits
+	ghClient := api.NewThrottledClient(ghCLIConfig.repo, api.ThrottledClientConfig{
+		Config: api.Config{
+			PageSize: cfg.PageSize,
+			Logger:   logger,
+			Token:    ghCLIConfig.token,
+		},
+		MaxConcurrentRequests: 5,               // Concurrent API calls
+		RequestsPerSecond:     5,               // 300 per minute (below GitHub's 5000/hour primary limit)
+		Burst:                 8,               // Allow small bursts
+		RetryLimit:            3,               // Retry failed requests up to 3 times
+		RetryBackoff:          time.Second * 1, // Start with 1 second backoff
 	})
 
 	calculator := billing.NewCalculator(nil, logger)
@@ -141,34 +149,27 @@ func fetchData(cfg Config, ghCLIConfig GitHubCLIConfig, logger zerolog.Logger) (
 		}
 	}
 
+	// Get repository information
 	repoDetails, err := ghClient.GetRepository(ctx)
 	if err != nil {
 		return nil, totalCosts, err
 	}
 
-	workflows, err := ghClient.ListWorkflows(ctx)
+	// Fetch runs with all their jobs and data concurrently
+	runsWithJobs, err := ghClient.(api.ThrottledClient).FetchRunsWithJobs(ctx, fromDate)
 	if err != nil {
 		return nil, totalCosts, err
 	}
 
-	workflowMap := make(map[int64]*github.Workflow)
-	for _, wfl := range workflows.Workflows {
-		workflowMap[*wfl.ID] = wfl
-	}
+	// Process the fetched runs and jobs
+	jobRunnerMap := make(map[int]billing.RunnerDuration)
+	for _, runWithJobs := range runsWithJobs {
+		run := runWithJobs.Run
+		workflow := runWithJobs.Workflow
+		workflowRunUsage := runWithJobs.UsageData
 
-	runs, err := ghClient.ListRepositoryRuns(ctx, fromDate)
-	if err != nil {
-		return nil, totalCosts, err
-	}
-
-	if *runs.TotalCount > 0 {
-		for _, run := range runs.WorkflowRuns {
-			workflowRunUsage, err := ghClient.GetWorkflowRunUsage(ctx, *run.ID)
-			if err != nil {
-				return nil, totalCosts, err
-			}
-
-			jobRunnerMap := make(map[int]billing.RunnerDuration)
+		// Create job runner map from usage data
+		if workflowRunUsage.Billable != nil {
 			for runnerType, billable := range *workflowRunUsage.Billable {
 				for _, job := range billable.JobRuns {
 					jobRunnerMap[*job.JobID] = billing.RunnerDuration{
@@ -177,33 +178,68 @@ func fetchData(cfg Config, ghCLIConfig GitHubCLIConfig, logger zerolog.Logger) (
 					}
 				}
 			}
+		}
 
-			jobs, err := ghClient.ListWorkflowJobs(ctx, *run.ID)
-			if err != nil {
-				return nil, totalCosts, err
-			}
+		// Process main jobs
+		jobDetails, totalCosts = processJobs(jobDetails, totalCosts, repoDetails, workflow, run, runWithJobs.Jobs, jobRunnerMap, calculator)
 
-			wfl, exists := workflowMap[*run.WorkflowID]
-			if !exists {
-				logger.Error().Int64("workflowID", *run.WorkflowID).Msg("workflow ID not found")
-				continue
-			}
-
-			jobDetails, totalCosts = processJobs(jobDetails, totalCosts, repoDetails, wfl, run, jobs.Jobs, jobRunnerMap, calculator)
-
-			if *run.RunAttempt > 1 {
-				for i := 1; i < int(*run.RunAttempt); i++ {
-					attemptJobs, err := ghClient.ListWorkflowJobsAttempt(ctx, *run.ID, int64(i))
-					if err != nil {
-						return nil, totalCosts, err
-					}
-					jobDetails, totalCosts = processJobs(jobDetails, totalCosts, repoDetails, wfl, run, attemptJobs.Jobs, jobRunnerMap, calculator)
-				}
-			}
+		// Process jobs from previous attempts
+		for _, attemptJobs := range runWithJobs.AttemptJobs {
+			jobDetails, totalCosts = processJobs(jobDetails, totalCosts, repoDetails, workflow, run, attemptJobs, jobRunnerMap, calculator)
 		}
 	}
 
+	// Save the data for future use without fetching again
+	if err := saveData(jobDetails, totalCosts); err != nil {
+		logger.Warn().Err(err).Msg("Failed to save data for future use")
+	}
+
 	return jobDetails, totalCosts, nil
+}
+
+// saveData saves the fetched data to disk
+func saveData(jobDetails []reports.JobDetails, totalCosts reports.TotalCosts) error {
+	// Create data directory if it doesn't exist
+	dataDir := "reports/data"
+	if err := os.MkdirAll(dataDir, 0755); err != nil {
+		return err
+	}
+
+	// Save summary
+	summary := struct {
+		Totals reports.TotalCosts `json:"totals"`
+	}{
+		Totals: totalCosts,
+	}
+	summaryData, err := json.MarshalIndent(summary, "", "  ")
+	if err != nil {
+		return err
+	}
+	if err := os.WriteFile(filepath.Join(dataDir, "summary.json"), summaryData, 0644); err != nil {
+		return err
+	}
+
+	// Split job details into chunks to avoid very large files
+	const chunkSize = 100
+	for i := 0; i < len(jobDetails); i += chunkSize {
+		end := i + chunkSize
+		if end > len(jobDetails) {
+			end = len(jobDetails)
+		}
+
+		chunk := jobDetails[i:end]
+		chunkData, err := json.MarshalIndent(chunk, "", "  ")
+		if err != nil {
+			return err
+		}
+
+		chunkFile := filepath.Join(dataDir, fmt.Sprintf("jobs-%d.json", i/chunkSize+1))
+		if err := os.WriteFile(chunkFile, chunkData, 0644); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func loadExistingData() ([]reports.JobDetails, reports.TotalCosts, error) {
