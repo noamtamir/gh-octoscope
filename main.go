@@ -316,8 +316,11 @@ func generateReports(cfg Config, ghCLIConfig GitHubCLIConfig, jobDetails []repor
 		apiBaseUrl := os.Getenv("OCTOSCOPE_API_URL")
 		appBaseUrl := os.Getenv("OCTOSCOPE_APP_URL")
 
-		if apiBaseUrl == "" || appBaseUrl == "" {
-			return fmt.Errorf("OCTOSCOPE_API_URL and OCTOSCOPE_APP_URL environment variables must be set when using -report flag")
+		if apiBaseUrl == "" {
+			apiBaseUrl = "https://octoscope-server-production.up.railway.app"
+		}
+		if appBaseUrl == "" {
+			appBaseUrl = "https://octoscope.netlify.app"
 		}
 
 		osClient := api.NewOctoscopeClient(api.OctoscopeConfig{
