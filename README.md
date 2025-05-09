@@ -8,52 +8,43 @@ gh extension install noamtamir/gh-octoscope
 ```
 
 ## Usage
+- Generate only local reports:
 ```shell
-gh octoscope -csv -html -debug -from=2024-01-01
+gh octoscope -csv -html -debug
+```
+- Generate and get link full ephemeral report (available for 72 hours):
+```shell
+gh octoscope -report -debug
+```
+- Optionally obfuscate sensitive information like usernames and emails
+```shell
+gh octoscope -report -debug -obfuscate
 ```
 
 Available flags:
 - `-csv`: Generate CSV report
 - `-html`: Generate HTML report
-- `-report`: Generate full ephemeral report
-- `-debug`: Enable debug logging
+- `-report`: Generate and get link to full ephemeral report
+- `-obfuscate`: Obfuscate any sensitive information (usernames / emails)
 - `-from`: Generate report from this date (YYYY-MM-DD format)
+- `-fetch`: Fetch new data (defaults to true, set to -fetch=false to use previously fetched data to generate reports)
+- `-debug`: Enable debug logging
 - `-prod-log`: Enable production structured logging
-- `-fetch`: Fetch new data (defaults to true, set to false to use existing data)
-
-## Environment Variables
-
-When using the `-report` flag, the following environment variables must be set:
-- `OCTOSCOPE_API_URL`: The base URL of the Octoscope API (e.g., https://api.octoscope.com)
-- `OCTOSCOPE_APP_URL`: The base URL of the Octoscope web application (e.g., https://app.octoscope.com)
 
 ## Viewing the HTML Report
 
-After generating the report, you can view it by running a simple web server:
+After generating an html report, you can view it by running a simple web server:
 
 ### Prerequisites
-- Python 3 (if you don't have Python installed):
-  - Windows: Download from [python.org](https://www.python.org/downloads/)
-  - macOS: `brew install python3` (requires Homebrew) or download from [python.org](https://www.python.org/downloads/)
-  - Linux: `sudo apt install python3` (Ubuntu/Debian) or `sudo dnf install python3` (Fedora)
+- Python 3
 
-### Starting the Server
-1. Navigate to the reports directory:
+### Start a local server
 ```shell
-cd reports
-```
+cd reports && python3 -m http.server 8000
 
-2. Start the Python server:
-```shell
-python3 -m http.server 8000
+// go to: http://localhost:8000/report.html
 ```
-
-3. Open your web browser and visit:
-```
-http://localhost:8000/report.html
-```
-
-The server will continue running until you press Ctrl+C to stop it.
+Press Ctrl+C to stop the local server.
 
 ## Development
 
@@ -68,7 +59,7 @@ The server will continue running until you press Ctrl+C to stop it.
 git clone https://github.com/noamtamir/gh-octoscope.git
 ```
 
-2. Install as a local extension:
+2. Install the extension:
 ```shell
 gh extension install .
 ```
@@ -76,4 +67,17 @@ gh extension install .
 3. Run locally:
 ```shell
 go build && gh octoscope -csv -html -debug -from=2024-01-01
+```
+
+### Optional:Environment Variables
+
+When using the `-report` flag, the following environment variables are configurable:
+- `OCTOSCOPE_API_URL`: The base URL of the Octoscope API (default: https://octoscope-server-production.up.railway.app)
+- `OCTOSCOPE_APP_URL`: The base URL of the Octoscope web application (default: https://octoscope.netlify.app)
+
+You can set them via a `.env` file:
+
+```shell
+OCTOSCOPE_API_URL=http://0.0.0.0:8888
+OCTOSCOPE_APP_URL=http://localhost:3333
 ```
