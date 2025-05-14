@@ -12,7 +12,7 @@ Login to github via gh:
 gh auth login
 ```
 
-Clone the octoscope repository:
+Clone this repository:
 ```shell
 git clone https://github.com/noamtamir/gh-octoscope.git
 ```
