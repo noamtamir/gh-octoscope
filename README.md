@@ -2,29 +2,57 @@
 
 The missing cost explorer for GitHub Actions. Track and analyze your GitHub Actions usage and costs.
 
-## Installation
+## Install Locally
+Prerequisites:
+- Go 1.21+
+- GitHub CLI (gh)
+
+Login to github via gh:
+```shell
+gh auth login
+```
+
+Clone the octoscope repository:
+```shell
+git clone https://github.com/noamtamir/gh-octoscope.git
+```
+
+Build the extension:
+```shell
+cd gh-octoscope && go build
+```
+
+Install the extension:
+```shell
+gh extension install .
+```
+
+Run locally:
+```shell
+cd /path/to/repo/ && gh octoscope -report
+```
+
+## Installation (!!! NOT SUPPORTED YET !!!)
 ```shell
 gh extension install noamtamir/gh-octoscope
 ```
 
-## Usage
-- Generate only local reports:
+
+## Quickstart
+Generate full ephemeral report (available for 72 hours):
 ```shell
-gh octoscope -csv -html -debug
-```
-- Generate and get link full ephemeral report (available for 72 hours):
-```shell
-gh octoscope -report -debug
-```
-- Optionally obfuscate sensitive information like usernames and emails
-```shell
-gh octoscope -report -debug -obfuscate
+gh octoscope -report
 ```
 
-Available flags:
+Generate local reports and show debug logs:
+```shell
+gh octoscope -csv -html
+```
+
+### Available flags
+- `-report`: Generate and get link to full ephemeral report
 - `-csv`: Generate CSV report
 - `-html`: Generate HTML report
-- `-report`: Generate and get link to full ephemeral report
 - `-obfuscate`: Obfuscate any sensitive information (usernames / emails)
 - `-from`: Generate report from this date (YYYY-MM-DD format)
 - `-fetch`: Fetch new data (defaults to true, set to -fetch=false to use previously fetched data to generate reports)
@@ -46,30 +74,7 @@ cd reports && python3 -m http.server 8000
 ```
 Press Ctrl+C to stop the local server.
 
-## Development
-
-### Prerequisites
-- Go 1.21+
-- GitHub CLI (gh)
-
-### Setting up locally
-
-1. Clone the repository:
-```shell
-git clone https://github.com/noamtamir/gh-octoscope.git
-```
-
-2. Install the extension:
-```shell
-gh extension install .
-```
-
-3. Run locally:
-```shell
-go build && gh octoscope -csv -html -debug -from=2024-01-01
-```
-
-### Optional:Environment Variables
+## Optional:Environment Variables
 
 When using the `-report` flag, the following environment variables are configurable:
 - `OCTOSCOPE_API_URL`: The base URL of the Octoscope API (default: https://octoscope-server-production.up.railway.app)
