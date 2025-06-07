@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"flag"
 	"io"
 	"os"
 	"path/filepath"
@@ -11,10 +10,13 @@ import (
 
 	"github.com/cli/go-gh/v2/pkg/repository"
 	"github.com/google/go-github/v62/github"
+	"github.com/noamtamir/gh-octoscope/cmd"
 	"github.com/noamtamir/gh-octoscope/internal/api"
 	"github.com/noamtamir/gh-octoscope/internal/billing"
 	"github.com/noamtamir/gh-octoscope/internal/reports"
 	"github.com/rs/zerolog"
+	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -65,24 +67,20 @@ func (m *mockOctoscopeClient) BatchCreate(ctx context.Context, jobs []reports.Jo
 	return args.Error(0)
 }
 
-func TestParseFlags(t *testing.T) {
-	// Save original args and command line flags
+func TestCobraCommands(t *testing.T) {
+	// Save original args
 	oldArgs := os.Args
 	defer func() { os.Args = oldArgs }()
-
-	// Store the original flag.CommandLine
-	oldFlagCommandLine := flag.CommandLine
-	defer func() { flag.CommandLine = oldFlagCommandLine }()
 
 	tests := []struct {
 		name     string
 		args     []string
-		expected Config
+		expected cmd.Config
 	}{
 		{
 			name: "Default values",
 			args: []string{"gh-octoscope"},
-			expected: Config{
+			expected: cmd.Config{
 				PageSize: 30,
 				Fetch:    true,
 			},
@@ -90,7 +88,7 @@ func TestParseFlags(t *testing.T) {
 		{
 			name: "Debug mode",
 			args: []string{"gh-octoscope", "--debug"},
-			expected: Config{
+			expected: cmd.Config{
 				Debug:    true,
 				PageSize: 30,
 				Fetch:    true,
@@ -99,7 +97,7 @@ func TestParseFlags(t *testing.T) {
 		{
 			name: "Production logger",
 			args: []string{"gh-octoscope", "--prod-log"},
-			expected: Config{
+			expected: cmd.Config{
 				ProdLogger: true,
 				PageSize:   30,
 				Fetch:      true,
@@ -108,7 +106,7 @@ func TestParseFlags(t *testing.T) {
 		{
 			name: "CSV report",
 			args: []string{"gh-octoscope", "--csv"},
-			expected: Config{
+			expected: cmd.Config{
 				CSVReport: true,
 				PageSize:  30,
 				Fetch:     true,
@@ -117,7 +115,7 @@ func TestParseFlags(t *testing.T) {
 		{
 			name: "HTML report",
 			args: []string{"gh-octoscope", "--html"},
-			expected: Config{
+			expected: cmd.Config{
 				HTMLReport: true,
 				PageSize:   30,
 				Fetch:      true,
@@ -126,7 +124,7 @@ func TestParseFlags(t *testing.T) {
 		{
 			name: "No fetch",
 			args: []string{"gh-octoscope", "--fetch=false"},
-			expected: Config{
+			expected: cmd.Config{
 				PageSize: 30,
 				Fetch:    false,
 			},
@@ -134,7 +132,7 @@ func TestParseFlags(t *testing.T) {
 		{
 			name: "From date",
 			args: []string{"gh-octoscope", "--from=2025-04-01"},
-			expected: Config{
+			expected: cmd.Config{
 				FromDate: "2025-04-01",
 				PageSize: 30,
 				Fetch:    true,
@@ -143,7 +141,7 @@ func TestParseFlags(t *testing.T) {
 		{
 			name: "Full report with obfuscation",
 			args: []string{"gh-octoscope", "--report", "--obfuscate"},
-			expected: Config{
+			expected: cmd.Config{
 				FullReport: true,
 				Obfuscate:  true,
 				PageSize:   30,
@@ -153,7 +151,7 @@ func TestParseFlags(t *testing.T) {
 		{
 			name: "Multiple options",
 			args: []string{"gh-octoscope", "--csv", "--html", "--debug", "--from=2025-03-01"},
-			expected: Config{
+			expected: cmd.Config{
 				Debug:      true,
 				CSVReport:  true,
 				HTMLReport: true,
@@ -166,14 +164,66 @@ func TestParseFlags(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			// Reset the flag.CommandLine before each test
-			flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
+			// Reset the command for this test
+			rootCmd := initializeRootCmd()
 
-			// Set command line args
-			os.Args = tc.args
+			// Parse the command line arguments
+			rootCmd.SetArgs(tc.args[1:]) // Skip program name
 
-			// Parse flags
-			cfg := parseFlags()
+			// Execute the command in a way that doesn't actually run the command function
+			// We're just testing the flag parsing
+			rootCmd.SilenceErrors = true
+			rootCmd.SilenceUsage = true
+			err := rootCmd.ParseFlags(tc.args[1:])
+			require.NoError(t, err)
+
+			// Extract the Config from the command
+			var cfg cmd.Config
+			rootCmd.Flags().VisitAll(func(f *pflag.Flag) {
+				switch f.Name {
+				case "debug":
+					if f.Changed {
+						val, _ := rootCmd.Flags().GetBool(f.Name)
+						cfg.Debug = val
+					}
+				case "prod-log":
+					if f.Changed {
+						val, _ := rootCmd.Flags().GetBool(f.Name)
+						cfg.ProdLogger = val
+					}
+				case "report":
+					if f.Changed {
+						val, _ := rootCmd.Flags().GetBool(f.Name)
+						cfg.FullReport = val
+					}
+				case "csv":
+					if f.Changed {
+						val, _ := rootCmd.Flags().GetBool(f.Name)
+						cfg.CSVReport = val
+					}
+				case "html":
+					if f.Changed {
+						val, _ := rootCmd.Flags().GetBool(f.Name)
+						cfg.HTMLReport = val
+					}
+				case "fetch":
+					val, _ := rootCmd.Flags().GetBool(f.Name)
+					cfg.Fetch = val
+				case "from":
+					if f.Changed {
+						val, _ := rootCmd.Flags().GetString(f.Name)
+						cfg.FromDate = val
+					}
+				case "page-size":
+					val, _ := rootCmd.Flags().GetInt(f.Name)
+					cfg.PageSize = val
+				case "obfuscate":
+					if f.Changed {
+						val, _ := rootCmd.Flags().GetBool(f.Name)
+						cfg.Obfuscate = val
+					}
+				}
+			})
 
 			// Check results
 			assert.Equal(t, tc.expected.Debug, cfg.Debug)
@@ -243,8 +293,8 @@ func TestProcessJobs(t *testing.T) {
 	var jobDetails []reports.JobDetails
 	totalCosts := reports.TotalCosts{}
 
-	// Run the function under test
-	newJobDetails, newTotalCosts := processJobs(jobDetails, totalCosts, repo, wfl, run, jobs, jobRunnerMap, calculator)
+	// Run the function under test - use the exported function from cmd package
+	newJobDetails, newTotalCosts := cmd.ProcessJobs(jobDetails, totalCosts, repo, wfl, run, jobs, jobRunnerMap, calculator)
 
 	// Check results
 	assert.Len(t, newJobDetails, 2)
@@ -381,23 +431,23 @@ func TestRun_FetchMode(t *testing.T) {
 	}()
 
 	// GitHub CLI config mock
-	ghCLIConfig := GitHubCLIConfig{
-		repo: repository.Repository{
+	ghCLIConfig := cmd.GitHubCLIConfig{
+		Repo: repository.Repository{
 			Owner: "testowner",
 			Name:  "testrepo",
 		},
-		token: "testtoken",
+		Token: "testtoken",
 	}
 
 	// Run the function with various configurations
 	t.Run("CSV_Report", func(t *testing.T) {
-		cfg := Config{
+		cfg := cmd.Config{
 			CSVReport: true,
 			Fetch:     true,
 			PageSize:  10,
 		}
 
-		err := run(cfg, ghCLIConfig)
+		err := cmd.Run(cfg, ghCLIConfig)
 		require.NoError(t, err)
 
 		// Check that files were created
@@ -406,13 +456,13 @@ func TestRun_FetchMode(t *testing.T) {
 	})
 
 	t.Run("HTML_Report", func(t *testing.T) {
-		cfg := Config{
+		cfg := cmd.Config{
 			HTMLReport: true,
 			Fetch:      true,
 			PageSize:   10,
 		}
 
-		err := run(cfg, ghCLIConfig)
+		err := cmd.Run(cfg, ghCLIConfig)
 		require.NoError(t, err)
 
 		// Check that files were created
@@ -423,13 +473,13 @@ func TestRun_FetchMode(t *testing.T) {
 	})
 
 	t.Run("Full_Report", func(t *testing.T) {
-		cfg := Config{
+		cfg := cmd.Config{
 			FullReport: true,
 			Fetch:      true,
 			PageSize:   10,
 		}
 
-		err := run(cfg, ghCLIConfig)
+		err := cmd.Run(cfg, ghCLIConfig)
 		require.NoError(t, err)
 
 		// Check that server API was called
@@ -437,14 +487,14 @@ func TestRun_FetchMode(t *testing.T) {
 	})
 
 	t.Run("Obfuscated_Report", func(t *testing.T) {
-		cfg := Config{
+		cfg := cmd.Config{
 			FullReport: true,
 			Fetch:      true,
 			PageSize:   10,
 			Obfuscate:  true,
 		}
 
-		err := run(cfg, ghCLIConfig)
+		err := cmd.Run(cfg, ghCLIConfig)
 		require.NoError(t, err)
 
 		// Check that server API was called with obfuscation
@@ -502,22 +552,22 @@ func TestRun_NoFetchMode(t *testing.T) {
 	}()
 
 	// GitHub CLI config mock
-	ghCLIConfig := GitHubCLIConfig{
-		repo: repository.Repository{
+	ghCLIConfig := cmd.GitHubCLIConfig{
+		Repo: repository.Repository{
 			Owner: "testowner",
 			Name:  "testrepo",
 		},
-		token: "testtoken",
+		Token: "testtoken",
 	}
 
 	// Run the function with various configurations
 	t.Run("CSV_Report", func(t *testing.T) {
-		cfg := Config{
+		cfg := cmd.Config{
 			CSVReport: true,
 			Fetch:     false,
 		}
 
-		err := run(cfg, ghCLIConfig)
+		err := cmd.Run(cfg, ghCLIConfig)
 		require.NoError(t, err)
 
 		// Check that files were created
@@ -526,12 +576,12 @@ func TestRun_NoFetchMode(t *testing.T) {
 	})
 
 	t.Run("HTML_Report", func(t *testing.T) {
-		cfg := Config{
+		cfg := cmd.Config{
 			HTMLReport: true,
 			Fetch:      false,
 		}
 
-		err := run(cfg, ghCLIConfig)
+		err := cmd.Run(cfg, ghCLIConfig)
 		require.NoError(t, err)
 
 		// Check that files were created
@@ -539,12 +589,12 @@ func TestRun_NoFetchMode(t *testing.T) {
 	})
 
 	t.Run("Full_Report", func(t *testing.T) {
-		cfg := Config{
+		cfg := cmd.Config{
 			FullReport: true,
 			Fetch:      false,
 		}
 
-		err := run(cfg, ghCLIConfig)
+		err := cmd.Run(cfg, ghCLIConfig)
 		require.NoError(t, err)
 
 		// Check that server API was called
@@ -564,3 +614,8 @@ var (
 		return nil
 	}
 )
+
+// initializeRootCmd creates a fresh root command for testing
+func initializeRootCmd() *cobra.Command {
+	return cmd.NewRootCmd()
+}

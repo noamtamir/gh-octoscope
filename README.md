@@ -29,7 +29,7 @@ gh extension install .
 
 Run locally:
 ```shell
-cd /path/to/repo/ && gh octoscope -report
+cd /path/to/repo/ && gh octoscope report
 ```
 
 ## Installation (!!! NOT SUPPORTED YET !!!)
@@ -39,25 +39,86 @@ gh extension install noamtamir/gh-octoscope
 
 
 ## Quickstart
-Generate full ephemeral report (available for 72 hours):
+
+### Generate full ephemeral report (available for 72 hours):
 ```shell
-gh octoscope -report
+gh octoscope report
+# or using the legacy flag format
+gh octoscope --report
 ```
 
-Generate local reports and show debug logs:
+### Generate local reports and show debug logs:
 ```shell
-gh octoscope -csv -html
+gh octoscope report --csv --html --debug
+# or using the legacy flag format
+gh octoscope --csv --html --debug
 ```
 
-### Available flags
-- `-report`: Generate and get link to full ephemeral report
-- `-csv`: Generate CSV report
-- `-html`: Generate HTML report
-- `-obfuscate`: Obfuscate any sensitive information (usernames / emails)
-- `-from`: Generate report from this date (YYYY-MM-DD format)
-- `-fetch`: Fetch new data (defaults to true, set to -fetch=false to use previously fetched data to generate reports)
-- `-debug`: Enable debug logging
-- `-prod-log`: Enable production structured logging
+### Only fetch data without generating reports:
+```shell
+gh octoscope fetch
+```
+
+### Generate reports from previously fetched data:
+```shell
+gh octoscope report --fetch=false
+```
+
+### Enable shell completion
+
+#### Bash
+```shell
+source <(gh octoscope completion bash)
+
+# To load completions for each session, add to your .bashrc:
+# gh octoscope completion bash > /usr/local/etc/bash_completion.d/gh-octoscope
+```
+
+#### Zsh
+```shell
+source <(gh octoscope completion zsh)
+
+# To load completions for each session:
+# gh octoscope completion zsh > "${fpath[1]}/_gh-octoscope"
+```
+
+#### Fish
+```shell
+gh octoscope completion fish | source
+
+# To load completions for each session:
+# gh octoscope completion fish > ~/.config/fish/completions/gh-octoscope.fish
+```
+
+### Available Commands
+
+```shell
+gh octoscope [flags]
+gh octoscope [command]
+```
+
+#### Main Commands
+- `report`: Generate reports based on GitHub Actions usage data
+- `fetch`: Fetch GitHub Actions usage data without generating reports
+- `version`: Print the version number of gh-octoscope
+- `completion`: Generate shell completion scripts
+
+#### Global Flags
+- `--debug`: Sets log level to debug
+- `--prod-log`: Enable production structured logging
+- `--fetch`: Fetch new data (defaults to true, set to false to use previously fetched data)
+- `--from`: Generate report from this date. Format: YYYY-MM-DD
+- `--page-size`: Page size for GitHub API requests (default 30)
+
+#### Report Command Flags
+- `--csv`: Generate CSV report
+- `--html`: Generate HTML report
+- `--obfuscate`: Obfuscate sensitive data in the report (usernames, emails)
+
+For backward compatibility, the main command also supports:
+- `--report`: Generate full ephemeral report (same as using the 'report' command)
+- `--csv`: Generate csv report (same as using 'report --csv')
+- `--html`: Generate html report (same as using 'report --html')
 
 ## Viewing the HTML Report
 
