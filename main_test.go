@@ -82,7 +82,6 @@ func TestCobraCommands(t *testing.T) {
 			args: []string{"gh-octoscope"},
 			expected: cmd.Config{
 				PageSize: 30,
-				Fetch:    true,
 			},
 		},
 		{
@@ -91,7 +90,6 @@ func TestCobraCommands(t *testing.T) {
 			expected: cmd.Config{
 				Debug:    true,
 				PageSize: 30,
-				Fetch:    true,
 			},
 		},
 		{
@@ -100,33 +98,6 @@ func TestCobraCommands(t *testing.T) {
 			expected: cmd.Config{
 				ProdLogger: true,
 				PageSize:   30,
-				Fetch:      true,
-			},
-		},
-		{
-			name: "CSV report",
-			args: []string{"gh-octoscope", "--csv"},
-			expected: cmd.Config{
-				CSVReport: true,
-				PageSize:  30,
-				Fetch:     true,
-			},
-		},
-		{
-			name: "HTML report",
-			args: []string{"gh-octoscope", "--html"},
-			expected: cmd.Config{
-				HTMLReport: true,
-				PageSize:   30,
-				Fetch:      true,
-			},
-		},
-		{
-			name: "No fetch",
-			args: []string{"gh-octoscope", "--fetch=false"},
-			expected: cmd.Config{
-				PageSize: 30,
-				Fetch:    false,
 			},
 		},
 		{
@@ -135,29 +106,24 @@ func TestCobraCommands(t *testing.T) {
 			expected: cmd.Config{
 				FromDate: "2025-04-01",
 				PageSize: 30,
-				Fetch:    true,
 			},
 		},
 		{
-			name: "Full report with obfuscation",
-			args: []string{"gh-octoscope", "--report", "--obfuscate"},
+			name: "With obfuscation",
+			args: []string{"gh-octoscope", "--obfuscate"},
 			expected: cmd.Config{
-				FullReport: true,
-				Obfuscate:  true,
-				PageSize:   30,
-				Fetch:      true,
+				Obfuscate: true,
+				PageSize:  30,
 			},
 		},
 		{
 			name: "Multiple options",
-			args: []string{"gh-octoscope", "--csv", "--html", "--debug", "--from=2025-03-01"},
+			args: []string{"gh-octoscope", "--debug", "--from=2025-03-01", "--obfuscate"},
 			expected: cmd.Config{
-				Debug:      true,
-				CSVReport:  true,
-				HTMLReport: true,
-				FromDate:   "2025-03-01",
-				PageSize:   30,
-				Fetch:      true,
+				Debug:     true,
+				FromDate:  "2025-03-01",
+				PageSize:  30,
+				Obfuscate: true,
 			},
 		},
 	}
@@ -191,24 +157,6 @@ func TestCobraCommands(t *testing.T) {
 						val, _ := rootCmd.Flags().GetBool(f.Name)
 						cfg.ProdLogger = val
 					}
-				case "report":
-					if f.Changed {
-						val, _ := rootCmd.Flags().GetBool(f.Name)
-						cfg.FullReport = val
-					}
-				case "csv":
-					if f.Changed {
-						val, _ := rootCmd.Flags().GetBool(f.Name)
-						cfg.CSVReport = val
-					}
-				case "html":
-					if f.Changed {
-						val, _ := rootCmd.Flags().GetBool(f.Name)
-						cfg.HTMLReport = val
-					}
-				case "fetch":
-					val, _ := rootCmd.Flags().GetBool(f.Name)
-					cfg.Fetch = val
 				case "from":
 					if f.Changed {
 						val, _ := rootCmd.Flags().GetString(f.Name)
@@ -228,10 +176,6 @@ func TestCobraCommands(t *testing.T) {
 			// Check results
 			assert.Equal(t, tc.expected.Debug, cfg.Debug)
 			assert.Equal(t, tc.expected.ProdLogger, cfg.ProdLogger)
-			assert.Equal(t, tc.expected.FullReport, cfg.FullReport)
-			assert.Equal(t, tc.expected.CSVReport, cfg.CSVReport)
-			assert.Equal(t, tc.expected.HTMLReport, cfg.HTMLReport)
-			assert.Equal(t, tc.expected.Fetch, cfg.Fetch)
 			assert.Equal(t, tc.expected.FromDate, cfg.FromDate)
 			assert.Equal(t, tc.expected.PageSize, cfg.PageSize)
 			assert.Equal(t, tc.expected.Obfuscate, cfg.Obfuscate)
@@ -443,11 +387,10 @@ func TestRun_FetchMode(t *testing.T) {
 	t.Run("CSV_Report", func(t *testing.T) {
 		cfg := cmd.Config{
 			CSVReport: true,
-			Fetch:     true,
 			PageSize:  10,
 		}
 
-		err := cmd.Run(cfg, ghCLIConfig)
+		err := cmd.Run(cfg, ghCLIConfig, true)
 		require.NoError(t, err)
 
 		// Check that files were created
@@ -458,11 +401,10 @@ func TestRun_FetchMode(t *testing.T) {
 	t.Run("HTML_Report", func(t *testing.T) {
 		cfg := cmd.Config{
 			HTMLReport: true,
-			Fetch:      true,
 			PageSize:   10,
 		}
 
-		err := cmd.Run(cfg, ghCLIConfig)
+		err := cmd.Run(cfg, ghCLIConfig, true)
 		require.NoError(t, err)
 
 		// Check that files were created
@@ -475,11 +417,10 @@ func TestRun_FetchMode(t *testing.T) {
 	t.Run("Full_Report", func(t *testing.T) {
 		cfg := cmd.Config{
 			FullReport: true,
-			Fetch:      true,
 			PageSize:   10,
 		}
 
-		err := cmd.Run(cfg, ghCLIConfig)
+		err := cmd.Run(cfg, ghCLIConfig, true)
 		require.NoError(t, err)
 
 		// Check that server API was called
@@ -489,12 +430,11 @@ func TestRun_FetchMode(t *testing.T) {
 	t.Run("Obfuscated_Report", func(t *testing.T) {
 		cfg := cmd.Config{
 			FullReport: true,
-			Fetch:      true,
 			PageSize:   10,
 			Obfuscate:  true,
 		}
 
-		err := cmd.Run(cfg, ghCLIConfig)
+		err := cmd.Run(cfg, ghCLIConfig, true)
 		require.NoError(t, err)
 
 		// Check that server API was called with obfuscation
@@ -564,10 +504,9 @@ func TestRun_NoFetchMode(t *testing.T) {
 	t.Run("CSV_Report", func(t *testing.T) {
 		cfg := cmd.Config{
 			CSVReport: true,
-			Fetch:     false,
 		}
 
-		err := cmd.Run(cfg, ghCLIConfig)
+		err := cmd.Run(cfg, ghCLIConfig, false)
 		require.NoError(t, err)
 
 		// Check that files were created
@@ -578,10 +517,9 @@ func TestRun_NoFetchMode(t *testing.T) {
 	t.Run("HTML_Report", func(t *testing.T) {
 		cfg := cmd.Config{
 			HTMLReport: true,
-			Fetch:      false,
 		}
 
-		err := cmd.Run(cfg, ghCLIConfig)
+		err := cmd.Run(cfg, ghCLIConfig, false)
 		require.NoError(t, err)
 
 		// Check that files were created
@@ -591,10 +529,9 @@ func TestRun_NoFetchMode(t *testing.T) {
 	t.Run("Full_Report", func(t *testing.T) {
 		cfg := cmd.Config{
 			FullReport: true,
-			Fetch:      false,
 		}
 
-		err := cmd.Run(cfg, ghCLIConfig)
+		err := cmd.Run(cfg, ghCLIConfig, false)
 		require.NoError(t, err)
 
 		// Check that server API was called

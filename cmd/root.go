@@ -22,7 +22,6 @@ type Config struct {
 	HTMLReport bool
 	FromDate   string
 	PageSize   int
-	Fetch      bool
 	Obfuscate  bool
 }
 
@@ -36,7 +35,6 @@ var (
 	// Config that will be used throughout the application
 	cfg = Config{
 		PageSize: 30,
-		Fetch:    true,
 	}
 
 	// Version information
@@ -77,23 +75,18 @@ on the runner types used.`,
 				Repo:  repo,
 			}
 
-			// Run the application
-			return Run(cfg, ghCLIConfig)
+			// Run the application with fetch mode
+			// Default behavior for root command is to fetch
+			return Run(cfg, ghCLIConfig, true)
 		},
 	}
 
 	// Add persistent flags (available to all subcommands)
 	rootCmd.PersistentFlags().BoolVar(&cfg.Debug, "debug", false, "Sets log level to debug")
 	rootCmd.PersistentFlags().BoolVar(&cfg.ProdLogger, "prod-log", false, "Production structured log")
-	rootCmd.PersistentFlags().BoolVar(&cfg.Fetch, "fetch", true, "Fetch new data (set to false to use existing data)")
 	rootCmd.PersistentFlags().StringVar(&cfg.FromDate, "from", "", "Generate report from this date. Format: YYYY-MM-DD")
 	rootCmd.PersistentFlags().IntVar(&cfg.PageSize, "page-size", 30, "Page size for GitHub API requests")
-
-	// For backward compatibility, keep a few flags in root command
-	rootCmd.Flags().BoolVar(&cfg.FullReport, "report", false, "Generate full report (same as using the 'report' command)")
-	rootCmd.Flags().BoolVar(&cfg.CSVReport, "csv", false, "Generate csv report (same as using 'report --csv')")
-	rootCmd.Flags().BoolVar(&cfg.HTMLReport, "html", false, "Generate html report (same as using 'report --html')")
-	rootCmd.Flags().BoolVar(&cfg.Obfuscate, "obfuscate", false, "Obfuscate sensitive data in the report")
+	rootCmd.PersistentFlags().BoolVar(&cfg.Obfuscate, "obfuscate", false, "Obfuscate sensitive data in reports")
 
 	// Set version template
 	rootCmd.SetVersionTemplate(`Version: {{.Version}}

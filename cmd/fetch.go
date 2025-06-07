@@ -14,8 +14,7 @@ func newFetchCmd() *cobra.Command {
 		Long: `The fetch command retrieves GitHub Actions usage data from the GitHub API.
 It only downloads and caches the data, without generating reports.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			// Force fetch to true since this is the fetch command
-			cfg.Fetch = true
+			// Fetch data only, no reporting
 
 			// Disable all report generation
 			cfg.FullReport = false
@@ -35,8 +34,8 @@ It only downloads and caches the data, without generating reports.`,
 				Repo:  repo,
 			}
 
-			// Run the application
-			if err := Run(cfg, ghCLIConfig); err != nil {
+			// Run the application in fetch mode
+			if err := Run(cfg, ghCLIConfig, true); err != nil {
 				cmd.PrintErrf("Error: %v\n", err)
 			} else {
 				cmd.Println("Data successfully fetched and stored for future use")

@@ -8,6 +8,8 @@ import (
 
 // newReportCmd creates and returns the report command
 func newReportCmd() *cobra.Command {
+	var fetch bool = true // By default, fetch is true
+
 	var reportCmd = &cobra.Command{
 		Use:   "report",
 		Short: "Generate reports based on GitHub Actions usage data",
@@ -31,8 +33,8 @@ It can generate CSV, HTML, or full reports with different levels of detail.`,
 				Repo:  repo,
 			}
 
-			// Run the application
-			if err := Run(cfg, ghCLIConfig); err != nil {
+			// Run the application with fetchMode determined by the fetch flag
+			if err := Run(cfg, ghCLIConfig, fetch); err != nil {
 				cmd.PrintErrf("Error: %v\n", err)
 			}
 		},
@@ -41,7 +43,8 @@ It can generate CSV, HTML, or full reports with different levels of detail.`,
 	// Add flags specific to the report command
 	reportCmd.Flags().BoolVar(&cfg.CSVReport, "csv", false, "Generate CSV report")
 	reportCmd.Flags().BoolVar(&cfg.HTMLReport, "html", false, "Generate HTML report")
-	reportCmd.Flags().BoolVar(&cfg.Obfuscate, "obfuscate", false, "Obfuscate sensitive data in the report")
+	reportCmd.Flags().BoolVar(&fetch, "fetch", true, "Whether to fetch new data or use existing data")
+	// Note: obfuscate is now a persistent flag defined in the root command
 
 	return reportCmd
 }

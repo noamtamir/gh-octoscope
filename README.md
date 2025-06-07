@@ -43,15 +43,11 @@ gh extension install noamtamir/gh-octoscope
 ### Generate full ephemeral report (available for 72 hours):
 ```shell
 gh octoscope report
-# or using the legacy flag format
-gh octoscope --report
 ```
 
 ### Generate local reports and show debug logs:
 ```shell
 gh octoscope report --csv --html --debug
-# or using the legacy flag format
-gh octoscope --csv --html --debug
 ```
 
 ### Only fetch data without generating reports:
@@ -106,19 +102,14 @@ gh octoscope [command]
 #### Global Flags
 - `--debug`: Sets log level to debug
 - `--prod-log`: Enable production structured logging
-- `--fetch`: Fetch new data (defaults to true, set to false to use previously fetched data)
 - `--from`: Generate report from this date. Format: YYYY-MM-DD
 - `--page-size`: Page size for GitHub API requests (default 30)
+- `--obfuscate`: Obfuscate sensitive data in reports (usernames, emails)
 
 #### Report Command Flags
 - `--csv`: Generate CSV report
 - `--html`: Generate HTML report
-- `--obfuscate`: Obfuscate sensitive data in the report (usernames, emails)
-
-For backward compatibility, the main command also supports:
-- `--report`: Generate full ephemeral report (same as using the 'report' command)
-- `--csv`: Generate csv report (same as using 'report --csv')
-- `--html`: Generate html report (same as using 'report --html')
+- `--fetch`: Whether to fetch new data or use existing data (default true, set to false to use previously fetched data)
 
 ## Viewing the HTML Report
 
@@ -137,7 +128,7 @@ Press Ctrl+C to stop the local server.
 
 ## Optional:Environment Variables
 
-When using the `-report` flag, the following environment variables are configurable:
+When using the `report` command, the following environment variables are configurable:
 - `OCTOSCOPE_API_URL`: The base URL of the Octoscope API (default: https://octoscope-server-production.up.railway.app)
 - `OCTOSCOPE_APP_URL`: The base URL of the Octoscope web application (default: https://octoscope.netlify.app)
 

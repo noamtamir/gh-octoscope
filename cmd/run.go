@@ -16,13 +16,13 @@ import (
 )
 
 // Run executes the main application logic
-func Run(cfg Config, ghCLIConfig GitHubCLIConfig) error {
+func Run(cfg Config, ghCLIConfig GitHubCLIConfig, fetchMode bool) error {
 	logger := setupLogger()
 
 	var jobDetails []reports.JobDetails
 	var totalCosts reports.TotalCosts
 
-	if cfg.Fetch {
+	if fetchMode {
 		var err error
 		jobDetails, totalCosts, err = fetchData(cfg, ghCLIConfig, logger)
 		if err != nil {
@@ -182,7 +182,7 @@ func loadExistingData() ([]reports.JobDetails, reports.TotalCosts, error) {
 
 	dataDir := "reports/data"
 	if _, err := os.Stat(dataDir); os.IsNotExist(err) {
-		return nil, totalCosts, fmt.Errorf("data directory %s does not exist. Run with --fetch=true first", dataDir)
+		return nil, totalCosts, fmt.Errorf("data directory %s does not exist. Run 'gh octoscope fetch' first", dataDir)
 	}
 
 	summaryFile, err := os.ReadFile(filepath.Join(dataDir, "summary.json"))
