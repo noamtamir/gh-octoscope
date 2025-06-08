@@ -15,6 +15,8 @@ import (
 	"github.com/rs/zerolog"
 )
 
+const reportsDirName string = ".reports"
+
 // Run executes the main application logic
 func Run(cfg Config, ghCLIConfig GitHubCLIConfig, fetchMode bool) error {
 	logger := setupLogger()
@@ -36,7 +38,7 @@ func Run(cfg Config, ghCLIConfig GitHubCLIConfig, fetchMode bool) error {
 		}
 	}
 
-	if err := os.MkdirAll("reports", 0755); err != nil {
+	if err := os.MkdirAll(reportsDirName, 0755); err != nil {
 		return err
 	}
 
@@ -134,7 +136,7 @@ func fetchData(cfg Config, ghCLIConfig GitHubCLIConfig, logger zerolog.Logger) (
 // saveData saves the fetched data to disk
 func saveData(jobDetails []reports.JobDetails, totalCosts reports.TotalCosts) error {
 	// Create data directory if it doesn't exist
-	dataDir := "reports/data"
+	dataDir := reportsDirName + "/data"
 	if err := os.MkdirAll(dataDir, 0755); err != nil {
 		return err
 	}
@@ -180,7 +182,7 @@ func loadExistingData() ([]reports.JobDetails, reports.TotalCosts, error) {
 	var jobDetails []reports.JobDetails
 	var totalCosts reports.TotalCosts
 
-	dataDir := "reports/data"
+	dataDir := reportsDirName + "/data"
 	if _, err := os.Stat(dataDir); os.IsNotExist(err) {
 		return nil, totalCosts, fmt.Errorf("data directory %s does not exist. Run 'gh octoscope fetch' first", dataDir)
 	}
@@ -230,7 +232,7 @@ func generateReports(cfg Config, ghCLIConfig GitHubCLIConfig, jobDetails []repor
 	}
 
 	if cfg.CSVReport {
-		csvGen := reports.NewCSVGenerator("reports/report.csv", "reports/totals.csv", logger)
+		csvGen := reports.NewCSVGenerator(reportsDirName+"/report.csv", reportsDirName+"/totals.csv", logger)
 		if err := csvGen.Generate(reportData); err != nil {
 			return err
 		}

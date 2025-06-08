@@ -22,6 +22,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const reportsDirName string = ".reports"
+
 // Mock GitHub API client
 type mockGitHubClient struct {
 	mock.Mock
@@ -279,7 +281,7 @@ func TestRun_FetchMode(t *testing.T) {
 	os.Chdir(tmpDir)
 
 	// Create reports directory
-	err = os.Mkdir("reports", 0755)
+	err = os.Mkdir(reportsDirName, 0755)
 	require.NoError(t, err)
 
 	// Set up mock environment variables
@@ -399,8 +401,8 @@ func TestRun_FetchMode(t *testing.T) {
 		require.NoError(t, err)
 
 		// Check that files were created
-		assert.FileExists(t, filepath.Join("reports", "report.csv"))
-		assert.FileExists(t, filepath.Join("reports", "totals.csv"))
+		assert.FileExists(t, filepath.Join(reportsDirName, "report.csv"))
+		assert.FileExists(t, filepath.Join(reportsDirName, "totals.csv"))
 	})
 
 	t.Run("Full_Report", func(t *testing.T) {
@@ -446,7 +448,7 @@ func TestRun_NoFetchMode(t *testing.T) {
 	os.Chdir(tmpDir)
 
 	// Create data directory structure
-	reportsDir := filepath.Join(tmpDir, "reports")
+	reportsDir := filepath.Join(tmpDir, reportsDirName)
 	dataDir := filepath.Join(reportsDir, "data")
 	require.NoError(t, os.MkdirAll(dataDir, 0755))
 
@@ -499,8 +501,8 @@ func TestRun_NoFetchMode(t *testing.T) {
 		require.NoError(t, err)
 
 		// Check that files were created
-		assert.FileExists(t, filepath.Join("reports", "report.csv"))
-		assert.FileExists(t, filepath.Join("reports", "totals.csv"))
+		assert.FileExists(t, filepath.Join(reportsDirName, "report.csv"))
+		assert.FileExists(t, filepath.Join(reportsDirName, "totals.csv"))
 	})
 
 	t.Run("Full_Report", func(t *testing.T) {
