@@ -110,7 +110,12 @@ func TestCSVGenerator(t *testing.T) {
 		generator := NewCSVGenerator(reportPath, totalsPath, logger)
 
 		// Generate the report
-		require.NoError(t, generator.Generate(setupTestData()))
+		err = generator.Generate(setupTestData())
+		require.NoError(t, err)
+
+		// Verify paths can be retrieved from generator
+		assert.Equal(t, reportPath, generator.GetJobsPath())
+		assert.Equal(t, totalsPath, generator.GetTotalsPath())
 
 		// Verify files were created
 		assert.FileExists(t, reportPath)
@@ -158,7 +163,13 @@ func TestCSVGenerator(t *testing.T) {
 		generator := NewCSVGeneratorWithFormat(tmpDir, owner, repo, reportID, logger)
 
 		// Generate the report
-		require.NoError(t, generator.Generate(setupTestData()))
+		var err2 error
+		err2 = generator.Generate(setupTestData())
+		require.NoError(t, err2)
+
+		// Verify paths can be retrieved from the generator
+		assert.Contains(t, generator.GetJobsPath(), tmpDir)
+		assert.Contains(t, generator.GetTotalsPath(), tmpDir)
 
 		// List all files in the directory
 		files, err := os.ReadDir(tmpDir)
@@ -260,7 +271,13 @@ func TestServerGenerator(t *testing.T) {
 	generator := NewServerGenerator(mockClient, config, logger)
 
 	// Generate the report
-	require.NoError(t, generator.Generate(setupTestData()))
+	var err error
+	err = generator.Generate(setupTestData())
+	require.NoError(t, err)
+
+	// Verify the report URL via the getter
+	reportURL := generator.GetReportURL()
+	assert.Contains(t, reportURL, customReportID)
 
 	// Verify BatchCreate was called with correct parameters
 	assert.True(t, mockClient.batchCreateCalled)

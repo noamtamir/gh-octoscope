@@ -21,10 +21,11 @@ type octoscopeClient interface {
 
 // ServerGenerator generates reports on our servers
 type ServerGenerator struct {
-	client   octoscopeClient
-	logger   zerolog.Logger
-	config   ServerConfig
-	reportID string // Custom report ID, if provided
+	client    octoscopeClient
+	logger    zerolog.Logger
+	config    ServerConfig
+	reportID  string // Custom report ID, if provided
+	reportURL string // Generated report URL
 }
 
 type ServerConfig struct {
@@ -34,17 +35,23 @@ type ServerConfig struct {
 	ReportID  string // Optional custom report ID
 }
 
-// NewServerGenerator creates a new server report generator
 func NewServerGenerator(client octoscopeClient, config ServerConfig, logger zerolog.Logger) *ServerGenerator {
+	reportURL := fmt.Sprintf("%s/report/%s",
+		config.AppURL,
+		config.ReportID)
 	return &ServerGenerator{
-		client:   client,
-		config:   config,
-		logger:   logger,
-		reportID: config.ReportID,
+		client:    client,
+		config:    config,
+		logger:    logger,
+		reportID:  config.ReportID,
+		reportURL: reportURL,
 	}
 }
 
-// Generate implements the Generator interface for Server reports
+func (g *ServerGenerator) GetReportURL() string {
+	return g.reportURL
+}
+
 func (g *ServerGenerator) Generate(data *ReportData) error {
 	// Use provided report ID or generate a new one
 	reportID := g.reportID
@@ -88,13 +95,9 @@ func (g *ServerGenerator) Generate(data *ReportData) error {
 			Msg("Batch uploaded successfully")
 	}
 
-	reportURL := fmt.Sprintf("%s/report/%s",
-		g.config.AppURL,
-		reportID)
-
 	g.logger.Info().
-		Str("report_url", reportURL).
-		Msg("Report generated successfully. View your report at: " + reportURL)
+		Str("report_url", g.reportURL).
+		Msg("Report generated successfully. View your report at: " + g.reportURL)
 
 	return nil
 }

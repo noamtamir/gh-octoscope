@@ -51,14 +51,26 @@ func NewCSVGeneratorWithFormat(basePath string, owner, repo, reportID string, lo
 	}
 }
 
-// Generate generates a CSV report
+func (g *CSVGenerator) GetJobsPath() string {
+	return g.jobsPath
+}
+
+func (g *CSVGenerator) GetTotalsPath() string {
+	return g.totalsPath
+}
+
 func (g *CSVGenerator) Generate(data *ReportData) error {
 	g.logger.Info().Msg("Generating CSV report")
 
 	if err := g.generateJobsReport(data.Jobs, data.ObfuscateData); err != nil {
 		return err
 	}
-	return g.generateTotalsReport(data.Totals)
+
+	if err := g.generateTotalsReport(data.Totals); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (g *CSVGenerator) generateJobsReport(jobs []JobDetails, shouldObfuscate bool) error {

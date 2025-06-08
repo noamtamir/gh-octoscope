@@ -246,6 +246,10 @@ func generateReports(cfg Config, ghCLIConfig GitHubCLIConfig, jobDetails []repor
 		if err := csvGen.Generate(reportData); err != nil {
 			return err
 		}
+
+		fmt.Printf("\nCSV reports generated successfully:\n")
+		fmt.Printf("  Report file: %s\n", csvGen.GetJobsPath())
+		fmt.Printf("  Totals file: %s\n\n", csvGen.GetTotalsPath())
 	}
 
 	if cfg.FullReport {
@@ -272,9 +276,14 @@ func generateReports(cfg Config, ghCLIConfig GitHubCLIConfig, jobDetails []repor
 			ReportID:  reportID, // Pass the same reportID used for CSV
 		}, logger)
 
-		if err := serverGen.Generate(reportData); err != nil {
+		err := serverGen.Generate(reportData)
+		if err != nil {
 			return fmt.Errorf("failed to generate server report: %w", err)
 		}
+
+		// Print the report URL for easy access
+		fmt.Printf("\nFull report generated successfully:\n")
+		fmt.Printf("  Report URL: %s\n\n", serverGen.GetReportURL())
 	}
 
 	return nil
