@@ -2,7 +2,6 @@ package reports
 
 import (
 	"context"
-	"encoding/json"
 	"io"
 	"os"
 	"path/filepath"
@@ -131,59 +130,6 @@ func TestCSVGenerator(t *testing.T) {
 	// Basic content validation
 	totalsLines := len(splitLines(string(totalsContent)))
 	assert.GreaterOrEqual(t, totalsLines, 2, "Expected at least header and one data row in totals.csv")
-}
-
-func TestHTMLGenerator(t *testing.T) {
-	// Create a temporary directory for test outputs
-	tmpDir, err := os.MkdirTemp("", "html-test")
-	require.NoError(t, err)
-	defer os.RemoveAll(tmpDir)
-
-	// Create paths for test outputs
-	reportPath := filepath.Join(tmpDir, "report.html")
-
-	// Create silent logger
-	logger := zerolog.New(io.Discard)
-
-	// Create generator
-	generator, err := NewHTMLGenerator(reportPath, logger)
-	require.NoError(t, err)
-
-	// Generate the report
-	require.NoError(t, generator.Generate(setupTestData()))
-
-	// Verify files were created
-	assert.FileExists(t, reportPath)
-	assert.DirExists(t, filepath.Join(tmpDir, "data"))
-	assert.FileExists(t, filepath.Join(tmpDir, "data", "summary.json"))
-	assert.FileExists(t, filepath.Join(tmpDir, "data", "jobs.json"))
-
-	// Read the summary.json file and verify its contents
-	summaryContent, err := os.ReadFile(filepath.Join(tmpDir, "data", "summary.json"))
-	require.NoError(t, err)
-
-	var summary struct {
-		Totals TotalCosts `json:"totals"`
-	}
-	require.NoError(t, json.Unmarshal(summaryContent, &summary))
-
-	// Verify the total values
-	assert.Equal(t, 25*time.Minute, summary.Totals.JobDuration)
-	assert.Equal(t, 25*time.Minute, summary.Totals.RoundedUpJobDuration)
-	assert.Equal(t, 0.2, summary.Totals.BillableInUSD)
-
-	// Read the jobs.json file and verify its contents
-	jobsContent, err := os.ReadFile(filepath.Join(tmpDir, "data", "jobs.json"))
-	require.NoError(t, err)
-
-	var jobs []FlatJobDetails
-	require.NoError(t, json.Unmarshal(jobsContent, &jobs))
-
-	// Verify we have job data
-	assert.Len(t, jobs, 1)
-	assert.Equal(t, "Test Workflow", jobs[0].WorkflowName)
-	assert.Equal(t, "Test Job", jobs[0].JobName)
-	assert.Equal(t, "UBUNTU", jobs[0].Runner)
 }
 
 // Mock implementation of octoscopeClient for testing

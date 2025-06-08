@@ -19,7 +19,6 @@ type Config struct {
 	ProdLogger bool
 	FullReport bool
 	CSVReport  bool
-	HTMLReport bool
 	FromDate   string
 	PageSize   int
 	Obfuscate  bool

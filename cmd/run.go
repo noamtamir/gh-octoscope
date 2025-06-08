@@ -236,16 +236,6 @@ func generateReports(cfg Config, ghCLIConfig GitHubCLIConfig, jobDetails []repor
 		}
 	}
 
-	if cfg.HTMLReport {
-		htmlGen, err := reports.NewHTMLGenerator("reports/report.html", logger)
-		if err != nil {
-			return err
-		}
-		if err := htmlGen.Generate(reportData); err != nil {
-			return err
-		}
-	}
-
 	if cfg.FullReport {
 		apiBaseUrl := os.Getenv("OCTOSCOPE_API_URL")
 		appBaseUrl := os.Getenv("OCTOSCOPE_APP_URL")

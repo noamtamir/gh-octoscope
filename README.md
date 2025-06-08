@@ -47,7 +47,7 @@ gh octoscope report
 
 ### Generate local reports and show debug logs:
 ```shell
-gh octoscope report --csv --html --debug
+gh octoscope report --csv --debug
 ```
 
 ### Only fetch data without generating reports:
@@ -114,23 +114,7 @@ gh octoscope [command]
 
 #### Report Command Flags
 - `--csv`: Generate CSV report
-- `--html`: Generate HTML report
 - `--fetch`: Whether to fetch new data or use existing data (default true, set to false to use previously fetched data)
-
-## Viewing the HTML Report
-
-After generating an html report, you can view it by running a simple web server:
-
-### Prerequisites
-- Python 3
-
-### Start a local server
-```shell
-cd reports && python3 -m http.server 8000
-
-// go to: http://localhost:8000/report.html
-```
-Press Ctrl+C to stop the local server.
 
 ## Optional:Environment Variables
 

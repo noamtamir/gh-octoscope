@@ -403,22 +403,6 @@ func TestRun_FetchMode(t *testing.T) {
 		assert.FileExists(t, filepath.Join("reports", "totals.csv"))
 	})
 
-	t.Run("HTML_Report", func(t *testing.T) {
-		cfg := cmd.Config{
-			HTMLReport: true,
-			PageSize:   10,
-		}
-
-		err := cmd.Run(cfg, ghCLIConfig, true)
-		require.NoError(t, err)
-
-		// Check that files were created
-		assert.FileExists(t, filepath.Join("reports", "report.html"))
-		assert.DirExists(t, filepath.Join("reports", "data"))
-		assert.FileExists(t, filepath.Join("reports", "data", "jobs.json"))
-		assert.FileExists(t, filepath.Join("reports", "data", "summary.json"))
-	})
-
 	t.Run("Full_Report", func(t *testing.T) {
 		cfg := cmd.Config{
 			FullReport: true,
@@ -519,18 +503,6 @@ func TestRun_NoFetchMode(t *testing.T) {
 		assert.FileExists(t, filepath.Join("reports", "totals.csv"))
 	})
 
-	t.Run("HTML_Report", func(t *testing.T) {
-		cfg := cmd.Config{
-			HTMLReport: true,
-		}
-
-		err := cmd.Run(cfg, ghCLIConfig, false)
-		require.NoError(t, err)
-
-		// Check that files were created
-		assert.FileExists(t, filepath.Join("reports", "report.html"))
-	})
-
 	t.Run("Full_Report", func(t *testing.T) {
 		cfg := cmd.Config{
 			FullReport: true,
@@ -551,46 +523,36 @@ func TestReportCommand(t *testing.T) {
 
 	// Test report command with different flags
 	tests := []struct {
-		name         string
-		args         []string
-		expectedCSV  bool
-		expectedHTML bool
-		expectFetch  bool
+		name        string
+		args        []string
+		expectedCSV bool
+		expectFetch bool
 	}{
 		{
-			name:         "Report command default",
-			args:         []string{"gh-octoscope", "report"},
-			expectedCSV:  false,
-			expectedHTML: false,
-			expectFetch:  true,
+			name:        "Report command default",
+			args:        []string{"gh-octoscope", "report"},
+			expectedCSV: false,
+			expectFetch: true,
 		},
 		{
-			name:         "Report with CSV flag",
-			args:         []string{"gh-octoscope", "report", "--csv"},
-			expectedCSV:  true,
-			expectedHTML: false,
-			expectFetch:  true,
+			name:        "Report with CSV flag",
+			args:        []string{"gh-octoscope", "report", "--csv"},
+			expectedCSV: true,
+			expectFetch: true,
 		},
 		{
-			name:         "Report with HTML flag",
-			args:         []string{"gh-octoscope", "report", "--html"},
-			expectedCSV:  false,
-			expectedHTML: true,
-			expectFetch:  true,
+			name:        "Report with fetch=false",
+			args:        []string{"gh-octoscope", "report", "--fetch=false"},
+			expectedCSV: false,
+
+			expectFetch: false,
 		},
 		{
-			name:         "Report with fetch=false",
-			args:         []string{"gh-octoscope", "report", "--fetch=false"},
-			expectedCSV:  false,
-			expectedHTML: false,
-			expectFetch:  false,
-		},
-		{
-			name:         "Report with multiple flags",
-			args:         []string{"gh-octoscope", "report", "--csv", "--html", "--fetch=false"},
-			expectedCSV:  true,
-			expectedHTML: true,
-			expectFetch:  false,
+			name:        "Report with multiple flags",
+			args:        []string{"gh-octoscope", "report", "--csv", "", "--fetch=false"},
+			expectedCSV: true,
+
+			expectFetch: false,
 		},
 	}
 
@@ -613,11 +575,9 @@ func TestReportCommand(t *testing.T) {
 
 			// Check flag values
 			csvFlag, _ := reportCmd.Flags().GetBool("csv")
-			htmlFlag, _ := reportCmd.Flags().GetBool("html")
 			fetchFlag, _ := reportCmd.Flags().GetBool("fetch")
 
 			assert.Equal(t, tc.expectedCSV, csvFlag)
-			assert.Equal(t, tc.expectedHTML, htmlFlag)
 			assert.Equal(t, tc.expectFetch, fetchFlag)
 		})
 	}
@@ -670,6 +630,16 @@ func TestReportDeleteCommand(t *testing.T) {
 			expectedError: "accepts 1 arg(s), received 2",
 		},
 	}
+
+	// Temporarily redirect stdout/stderr to suppress cobra output
+	oldStdout := os.Stdout
+	oldStderr := os.Stderr
+	os.Stdout = nil
+	os.Stderr = nil
+	defer func() {
+		os.Stdout = oldStdout
+		os.Stderr = oldStderr
+	}()
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {

@@ -14,7 +14,7 @@ func newReportCmd() *cobra.Command {
 		Use:   "report",
 		Short: "Generate reports based on GitHub Actions usage data",
 		Long: `The report command generates various types of reports based on GitHub Actions usage data.
-It can generate CSV, HTML, or full reports with different levels of detail.`,
+It can generate CSV or full reports with different levels of detail.`,
 		Run: func(cmd *cobra.Command, args []string) {
 			// By default, if no subcommand is specified, we'll set the full report flag to true
 			cfg.FullReport = true
@@ -42,7 +42,6 @@ It can generate CSV, HTML, or full reports with different levels of detail.`,
 
 	// Add flags specific to the report command
 	reportCmd.Flags().BoolVar(&cfg.CSVReport, "csv", false, "Generate CSV report")
-	reportCmd.Flags().BoolVar(&cfg.HTMLReport, "html", false, "Generate HTML report")
 	reportCmd.Flags().BoolVar(&fetch, "fetch", true, "Whether to fetch new data or use existing data")
 	// Note: obfuscate is now a persistent flag defined in the root command
 

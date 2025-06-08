@@ -17,7 +17,7 @@
             "request": "launch",
             "mode": "auto",
             "program": "${fileDirname}",
-            "args": ["report", "--debug", "--csv", "--html", "--from=2024-01-01", "--fetch=false"]
+            "args": ["report", "--debug", "--csv", "--from=2024-01-01", "--fetch=false"]
         }
     ]
 }

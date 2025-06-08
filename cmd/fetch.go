@@ -19,7 +19,6 @@ It only downloads and caches the data, without generating reports.`,
 			// Disable all report generation
 			cfg.FullReport = false
 			cfg.CSVReport = false
-			cfg.HTMLReport = false
 
 			host, _ := auth.DefaultHost()
 			token, _ := auth.TokenForHost(host)
