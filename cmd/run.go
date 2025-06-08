@@ -263,9 +263,14 @@ func generateReports(cfg Config, ghCLIConfig GitHubCLIConfig, jobDetails []repor
 			totalsPath = filepath.Join(cwd, totalsPath)
 		}
 
+		// Make the file paths clickable using the OSC 8 ANSI escape sequence
+		// Format: \033]8;;file:///path/to/file\033\\file path\033]8;;\033\\
+		jobsPathLink := fmt.Sprintf("\033]8;;file://%s\033\\%s\033]8;;\033\\", jobsPath, jobsPath)
+		totalsPathLink := fmt.Sprintf("\033]8;;file://%s\033\\%s\033]8;;\033\\", totalsPath, totalsPath)
+
 		fmt.Printf("\nCSV reports generated successfully:\n")
-		fmt.Printf("  Report file: %s\n", jobsPath)
-		fmt.Printf("  Totals file: %s\n\n", totalsPath)
+		fmt.Printf("  Report file: %s\n", jobsPathLink)
+		fmt.Printf("  Totals file: %s\n\n", totalsPathLink)
 	}
 
 	if cfg.FullReport {
@@ -298,8 +303,12 @@ func generateReports(cfg Config, ghCLIConfig GitHubCLIConfig, jobDetails []repor
 		}
 
 		// Print the report URL for easy access
+		reportURL := serverGen.GetReportURL()
+		// Make the URL clickable using the OSC 8 ANSI escape sequence
+		reportURLLink := fmt.Sprintf("\033]8;;%s\033\\%s\033]8;;\033\\", reportURL, reportURL)
+
 		fmt.Printf("\nFull report generated successfully:\n")
-		fmt.Printf("  Report URL: %s\n\n", serverGen.GetReportURL())
+		fmt.Printf("  Report URL: %s\n\n", reportURLLink)
 	}
 
 	return nil
