@@ -247,9 +247,25 @@ func generateReports(cfg Config, ghCLIConfig GitHubCLIConfig, jobDetails []repor
 			return err
 		}
 
+		// Get current working directory to create absolute paths
+		cwd, err := os.Getwd()
+		if err != nil {
+			logger.Warn().Err(err).Msg("Failed to get current working directory")
+			cwd = "" // Use relative paths if we can't get the current directory
+		}
+
+		// Convert to absolute paths
+		jobsPath := csvGen.GetJobsPath()
+		totalsPath := csvGen.GetTotalsPath()
+
+		if cwd != "" && !filepath.IsAbs(jobsPath) {
+			jobsPath = filepath.Join(cwd, jobsPath)
+			totalsPath = filepath.Join(cwd, totalsPath)
+		}
+
 		fmt.Printf("\nCSV reports generated successfully:\n")
-		fmt.Printf("  Report file: %s\n", csvGen.GetJobsPath())
-		fmt.Printf("  Totals file: %s\n\n", csvGen.GetTotalsPath())
+		fmt.Printf("  Report file: %s\n", jobsPath)
+		fmt.Printf("  Totals file: %s\n\n", totalsPath)
 	}
 
 	if cfg.FullReport {
