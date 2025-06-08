@@ -89,13 +89,13 @@ func (g *ServerGenerator) Generate(data *ReportData) error {
 			return fmt.Errorf("failed to upload batch after %d retries: %w", maxRetries, err)
 		}
 
-		g.logger.Info().
+		g.logger.Debug().
 			Int("batch", i/batchSize+1).
 			Int("total_batches", (len(data.Jobs)+batchSize-1)/batchSize).
 			Msg("Batch uploaded successfully")
 	}
 
-	g.logger.Info().
+	g.logger.Debug().
 		Str("report_url", g.reportURL).
 		Msg("Report generated successfully. View your report at: " + g.reportURL)
 

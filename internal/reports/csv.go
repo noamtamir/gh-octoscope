@@ -60,7 +60,7 @@ func (g *CSVGenerator) GetTotalsPath() string {
 }
 
 func (g *CSVGenerator) Generate(data *ReportData) error {
-	g.logger.Info().Msg("Generating CSV report")
+	g.logger.Debug().Msg("Generating CSV report")
 
 	if err := g.generateJobsReport(data.Jobs, data.ObfuscateData); err != nil {
 		return err
@@ -75,7 +75,7 @@ func (g *CSVGenerator) Generate(data *ReportData) error {
 
 func (g *CSVGenerator) generateJobsReport(jobs []JobDetails, shouldObfuscate bool) error {
 	if len(jobs) == 0 {
-		g.logger.Info().Msg("No runs in the requested time frame")
+		g.logger.Debug().Msg("No runs in the requested time frame")
 		return nil
 	}
 
@@ -143,7 +143,7 @@ func (g *CSVGenerator) writeCSVFile(path string, data [][]string) error {
 		return err
 	}
 
-	g.logger.Info().Msgf("%s created successfully!", path)
+	g.logger.Debug().Msgf("%s created successfully!", path)
 	return nil
 }
 

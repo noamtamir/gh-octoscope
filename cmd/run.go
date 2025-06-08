@@ -32,22 +32,39 @@ func Run(cfg Config, ghCLIConfig GitHubCLIConfig, fetchMode bool) error {
 			return err
 		}
 	} else {
+		// Start spinner for loading existing data
+		s := createSpinner("Loading existing data...")
+		s.Start()
+
 		var err error
 		jobDetails, totalCosts, err = loadExistingData()
+
+		// Stop spinner and show success or error message
+		s.Stop()
 		if err != nil {
 			return err
 		}
+		fmt.Println(createSuccessMessage("Data loaded successfully."))
 	}
 
 	if err := os.MkdirAll(reportsDirName, 0755); err != nil {
 		return err
 	}
 
-	if err := generateReports(cfg, ghCLIConfig, jobDetails, totalCosts, logger); err != nil {
+	// Start spinner for report generation
+	s := createSpinner("Generating reports...")
+	s.Start()
+
+	err := generateReports(cfg, ghCLIConfig, jobDetails, totalCosts, logger)
+
+	// Stop spinner and show message
+	s.Stop()
+	if err != nil {
 		return err
 	}
+	fmt.Println(createSuccessMessage("Report generation completed."))
 
-	logger.Info().
+	logger.Debug().
 		Str("total_duration", totalCosts.JobDuration.String()).
 		Str("total_billable_duration", totalCosts.RoundedUpJobDuration.String()).
 		Float64("total_billable_usd", totalCosts.BillableInUSD).
@@ -87,6 +104,8 @@ func fetchData(cfg Config, ghCLIConfig GitHubCLIConfig, logger zerolog.Logger) (
 	}
 
 	// Get repository information
+	s := createSpinner("Fetching GitHub Actions data...")
+	s.Start()
 	repoDetails, err := ghClient.GetRepository(ctx)
 	if err != nil {
 		return nil, totalCosts, err
@@ -97,8 +116,12 @@ func fetchData(cfg Config, ghCLIConfig GitHubCLIConfig, logger zerolog.Logger) (
 	if err != nil {
 		return nil, totalCosts, err
 	}
+	fmt.Println(createSuccessMessage("Data fetching completed!"))
 
 	// Process the fetched runs and jobs
+	s = createSpinner("Processing data...")
+	s.Start()
+
 	jobRunnerMap := make(map[int]billing.RunnerDuration)
 	for _, runWithJobs := range runsWithJobs {
 		run := runWithJobs.Run
@@ -126,9 +149,18 @@ func fetchData(cfg Config, ghCLIConfig GitHubCLIConfig, logger zerolog.Logger) (
 		}
 	}
 
+	s.Stop()
+	fmt.Println(createSuccessMessage(fmt.Sprintf("Successfully processed data!")))
+
 	// Save the data for future use without fetching again
-	if err := saveData(jobDetails, totalCosts); err != nil {
+	s = createSpinner("Saving data for future use...")
+	s.Start()
+	err = saveData(jobDetails, totalCosts)
+	s.Stop()
+	if err != nil {
 		logger.Warn().Err(err).Msg("Failed to save data for future use")
+	} else {
+		fmt.Println(createSuccessMessage("Data successfully saved for future use!"))
 	}
 
 	return jobDetails, totalCosts, nil
@@ -183,13 +215,23 @@ func loadExistingData() ([]reports.JobDetails, reports.TotalCosts, error) {
 	var jobDetails []reports.JobDetails
 	var totalCosts reports.TotalCosts
 
+	s := createSpinner("Checking for existing data...")
+	s.Start()
+
 	dataDir := reportsDirName + "/data"
 	if _, err := os.Stat(dataDir); os.IsNotExist(err) {
+		s.Stop()
 		return nil, totalCosts, fmt.Errorf("data directory %s does not exist. Run 'gh octoscope fetch' first", dataDir)
 	}
+	s.Stop()
+	fmt.Println(createInfoMessage("Found existing data directory."))
+
+	s = createSpinner("Loading data files...")
+	s.Start()
 
 	summaryFile, err := os.ReadFile(filepath.Join(dataDir, "summary.json"))
 	if err != nil {
+		s.Stop()
 		return nil, totalCosts, fmt.Errorf("failed to read summary.json: %w", err)
 	}
 
@@ -197,6 +239,7 @@ func loadExistingData() ([]reports.JobDetails, reports.TotalCosts, error) {
 		Totals reports.TotalCosts `json:"totals"`
 	}
 	if err := json.Unmarshal(summaryFile, &summary); err != nil {
+		s.Stop()
 		return nil, totalCosts, fmt.Errorf("failed to parse summary.json: %w", err)
 	}
 	totalCosts = summary.Totals
@@ -208,20 +251,25 @@ func loadExistingData() ([]reports.JobDetails, reports.TotalCosts, error) {
 			break
 		}
 		if err != nil {
+			s.Stop()
 			return nil, totalCosts, fmt.Errorf("failed to read %s: %w", jobsPath, err)
 		}
 
 		var chunk []reports.JobDetails
 		if err := json.Unmarshal(jobsFile, &chunk); err != nil {
+			s.Stop()
 			return nil, totalCosts, fmt.Errorf("failed to parse %s: %w", jobsPath, err)
 		}
 		jobDetails = append(jobDetails, chunk...)
 	}
 
+	s.Stop()
+
 	if len(jobDetails) == 0 {
 		return nil, totalCosts, fmt.Errorf("no job data found in %s", dataDir)
 	}
 
+	fmt.Println(createSuccessMessage(fmt.Sprintf("Successfully loaded %d jobs from existing data.", len(jobDetails))))
 	return jobDetails, totalCosts, nil
 }
 
@@ -236,6 +284,10 @@ func generateReports(cfg Config, ghCLIConfig GitHubCLIConfig, jobDetails []repor
 	reportID := uuid.New().String()
 
 	if cfg.CSVReport {
+		// Start spinner for CSV report generation
+		s := createSpinner("Generating CSV reports...")
+		s.Start()
+
 		csvGen := reports.NewCSVGeneratorWithFormat(
 			reportsDirName,
 			ghCLIConfig.Repo.Owner,
@@ -243,9 +295,14 @@ func generateReports(cfg Config, ghCLIConfig GitHubCLIConfig, jobDetails []repor
 			reportID,
 			logger,
 		)
-		if err := csvGen.Generate(reportData); err != nil {
+		err := csvGen.Generate(reportData)
+
+		// Stop spinner
+		s.Stop()
+		if err != nil {
 			return err
 		}
+		fmt.Println(createSuccessMessage("CSV reports generated."))
 
 		// Get current working directory to create absolute paths
 		cwd, err := os.Getwd()
@@ -268,9 +325,8 @@ func generateReports(cfg Config, ghCLIConfig GitHubCLIConfig, jobDetails []repor
 		jobsPathLink := fmt.Sprintf("\033]8;;file://%s\033\\%s\033]8;;\033\\", jobsPath, jobsPath)
 		totalsPathLink := fmt.Sprintf("\033]8;;file://%s\033\\%s\033]8;;\033\\", totalsPath, totalsPath)
 
-		fmt.Printf("\nCSV reports generated successfully:\n")
-		fmt.Printf("  Report file: %s\n", jobsPathLink)
-		fmt.Printf("  Totals file: %s\n\n", totalsPathLink)
+		fmt.Printf("\nCSV Report: %s", jobsPathLink)
+		fmt.Printf("\nCSV Totals: %s\n\n", totalsPathLink)
 	}
 
 	if cfg.FullReport {
@@ -283,6 +339,10 @@ func generateReports(cfg Config, ghCLIConfig GitHubCLIConfig, jobDetails []repor
 		if appBaseUrl == "" {
 			appBaseUrl = "https://octoscope.netlify.app"
 		}
+
+		// Start spinner for server report generation
+		s := createSpinner("Generating full report on server...")
+		s.Start()
 
 		osClient := api.NewOctoscopeClient(api.OctoscopeConfig{
 			BaseUrl:     apiBaseUrl,
@@ -298,17 +358,20 @@ func generateReports(cfg Config, ghCLIConfig GitHubCLIConfig, jobDetails []repor
 		}, logger)
 
 		err := serverGen.Generate(reportData)
+
+		// Stop spinner
+		s.Stop()
 		if err != nil {
 			return fmt.Errorf("failed to generate server report: %w", err)
 		}
+		fmt.Println(createSuccessMessage("Full report generated successfully on server."))
 
 		// Print the report URL for easy access
 		reportURL := serverGen.GetReportURL()
 		// Make the URL clickable using the OSC 8 ANSI escape sequence
 		reportURLLink := fmt.Sprintf("\033]8;;%s\033\\%s\033]8;;\033\\", reportURL, reportURL)
 
-		fmt.Printf("\nFull report generated successfully:\n")
-		fmt.Printf("  Report URL: %s\n\n", reportURLLink)
+		fmt.Printf("\nReport URL: %s\n\n", reportURLLink)
 	}
 
 	return nil
