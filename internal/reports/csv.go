@@ -74,10 +74,35 @@ func (g *CSVGenerator) generateJobsReport(jobs []JobDetails, shouldObfuscate boo
 }
 
 func (g *CSVGenerator) generateTotalsReport(totals TotalCosts) error {
-	headers := []string{"total_job_duration", "total_rounded_up_job_duration", "total_billable_in_usd"}
+	// Add the requested columns: report_id, owner, repository, report_created_at
+	headers := []string{"report_id", "owner", "repository", "report_created_at", "total_job_duration", "total_rounded_up_job_duration", "total_billable_in_usd"}
+
+	// Get current timestamp for report_created_at
+	createdAt := time.Now().Format(g.dateTimeFormat)
+
+	// Use defaults for owner/repo/id if not provided (for backward compatibility)
+	reportID := g.reportID
+	if reportID == "" {
+		reportID = "not_specified"
+	}
+
+	owner := g.ownerName
+	if owner == "" {
+		owner = "not_specified"
+	}
+
+	repo := g.repoName
+	if repo == "" {
+		repo = "not_specified"
+	}
+
 	data := [][]string{
 		headers,
 		{
+			reportID,
+			owner,
+			repo,
+			createdAt,
 			totals.JobDuration.String(),
 			totals.RoundedUpJobDuration.String(),
 			strconv.FormatFloat(totals.BillableInUSD, 'f', 3, 64),

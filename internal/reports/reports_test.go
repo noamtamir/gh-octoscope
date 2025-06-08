@@ -131,6 +131,13 @@ func TestCSVGenerator(t *testing.T) {
 		// Basic content validation
 		totalsLines := len(splitLines(string(totalsContent)))
 		assert.GreaterOrEqual(t, totalsLines, 2, "Expected at least header and one data row in totals.csv")
+
+		// Verify new columns are present in the header
+		totalsStr := string(totalsContent)
+		assert.Contains(t, totalsStr, "report_id")
+		assert.Contains(t, totalsStr, "owner")
+		assert.Contains(t, totalsStr, "repository")
+		assert.Contains(t, totalsStr, "report_created_at")
 	})
 
 	t.Run("FormattedGenerator", func(t *testing.T) {
@@ -189,6 +196,13 @@ func TestCSVGenerator(t *testing.T) {
 				// Verify content
 				totalsLines := len(splitLines(string(content)))
 				assert.GreaterOrEqual(t, totalsLines, 2, "Expected at least header and one data row in totals.csv")
+
+				// Verify new columns are present in the header
+				totalsStr := string(content)
+				assert.Contains(t, totalsStr, "report_id")
+				assert.Contains(t, totalsStr, "owner")
+				assert.Contains(t, totalsStr, "repository")
+				assert.Contains(t, totalsStr, "report_created_at")
 			}
 		}
 
