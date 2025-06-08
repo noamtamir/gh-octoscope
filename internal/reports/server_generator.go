@@ -21,30 +21,36 @@ type octoscopeClient interface {
 
 // ServerGenerator generates reports on our servers
 type ServerGenerator struct {
-	client octoscopeClient
-	logger zerolog.Logger
-	config ServerConfig
+	client   octoscopeClient
+	logger   zerolog.Logger
+	config   ServerConfig
+	reportID string // Custom report ID, if provided
 }
 
 type ServerConfig struct {
 	AppURL    string
 	OwnerName string
 	RepoName  string
+	ReportID  string // Optional custom report ID
 }
 
 // NewServerGenerator creates a new server report generator
 func NewServerGenerator(client octoscopeClient, config ServerConfig, logger zerolog.Logger) *ServerGenerator {
 	return &ServerGenerator{
-		client: client,
-		config: config,
-		logger: logger,
+		client:   client,
+		config:   config,
+		logger:   logger,
+		reportID: config.ReportID,
 	}
 }
 
 // Generate implements the Generator interface for Server reports
 func (g *ServerGenerator) Generate(data *ReportData) error {
-	// Generate report-id
-	reportID := uuid.New().String()
+	// Use provided report ID or generate a new one
+	reportID := g.reportID
+	if reportID == "" {
+		reportID = uuid.New().String()
+	}
 
 	// Split jobs into batches
 	for i := 0; i < len(data.Jobs); i += batchSize {

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/google/go-github/v62/github"
+	"github.com/google/uuid"
 	"github.com/noamtamir/gh-octoscope/internal/api"
 	"github.com/noamtamir/gh-octoscope/internal/billing"
 	"github.com/noamtamir/gh-octoscope/internal/reports"
@@ -231,8 +232,17 @@ func generateReports(cfg Config, ghCLIConfig GitHubCLIConfig, jobDetails []repor
 		ObfuscateData: cfg.Obfuscate,
 	}
 
+	// Generate a single reportID to be used for both CSV and full report if needed
+	reportID := uuid.New().String()
+
 	if cfg.CSVReport {
-		csvGen := reports.NewCSVGenerator(reportsDirName+"/report.csv", reportsDirName+"/totals.csv", logger)
+		csvGen := reports.NewCSVGeneratorWithFormat(
+			reportsDirName,
+			ghCLIConfig.Repo.Owner,
+			ghCLIConfig.Repo.Name,
+			reportID,
+			logger,
+		)
 		if err := csvGen.Generate(reportData); err != nil {
 			return err
 		}
@@ -259,6 +269,7 @@ func generateReports(cfg Config, ghCLIConfig GitHubCLIConfig, jobDetails []repor
 			AppURL:    appBaseUrl,
 			OwnerName: ghCLIConfig.Repo.Owner,
 			RepoName:  ghCLIConfig.Repo.Name,
+			ReportID:  reportID, // Pass the same reportID used for CSV
 		}, logger)
 
 		if err := serverGen.Generate(reportData); err != nil {

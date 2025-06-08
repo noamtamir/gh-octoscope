@@ -93,43 +93,108 @@ func setupTestData() *ReportData {
 }
 
 func TestCSVGenerator(t *testing.T) {
-	// Create a temporary directory for test outputs
-	tmpDir, err := os.MkdirTemp("", "csv-test")
-	require.NoError(t, err)
-	defer os.RemoveAll(tmpDir)
+	t.Run("BasicGenerator", func(t *testing.T) {
+		// Create a temporary directory for test outputs
+		tmpDir, err := os.MkdirTemp("", "csv-test")
+		require.NoError(t, err)
+		defer os.RemoveAll(tmpDir)
 
-	// Create paths for test outputs
-	reportPath := filepath.Join(tmpDir, "report.csv")
-	totalsPath := filepath.Join(tmpDir, "totals.csv")
+		// Create paths for test outputs
+		reportPath := filepath.Join(tmpDir, "report.csv")
+		totalsPath := filepath.Join(tmpDir, "totals.csv")
 
-	// Create silent logger
-	logger := zerolog.New(io.Discard)
+		// Create silent logger
+		logger := zerolog.New(io.Discard)
 
-	// Create generator
-	generator := NewCSVGenerator(reportPath, totalsPath, logger)
+		// Create basic generator
+		generator := NewCSVGenerator(reportPath, totalsPath, logger)
 
-	// Generate the report
-	require.NoError(t, generator.Generate(setupTestData()))
+		// Generate the report
+		require.NoError(t, generator.Generate(setupTestData()))
 
-	// Verify files were created
-	assert.FileExists(t, reportPath)
-	assert.FileExists(t, totalsPath)
+		// Verify files were created
+		assert.FileExists(t, reportPath)
+		assert.FileExists(t, totalsPath)
 
-	// Read report.csv
-	reportContent, err := os.ReadFile(reportPath)
-	require.NoError(t, err)
+		// Read report.csv
+		reportContent, err := os.ReadFile(reportPath)
+		require.NoError(t, err)
 
-	// Basic content validation (expecting CSV header and at least one row)
-	reportLines := len(splitLines(string(reportContent)))
-	assert.GreaterOrEqual(t, reportLines, 2, "Expected at least header and one data row in report.csv")
+		// Basic content validation (expecting CSV header and at least one row)
+		reportLines := len(splitLines(string(reportContent)))
+		assert.GreaterOrEqual(t, reportLines, 2, "Expected at least header and one data row in report.csv")
 
-	// Read totals.csv
-	totalsContent, err := os.ReadFile(totalsPath)
-	require.NoError(t, err)
+		// Read totals.csv
+		totalsContent, err := os.ReadFile(totalsPath)
+		require.NoError(t, err)
 
-	// Basic content validation
-	totalsLines := len(splitLines(string(totalsContent)))
-	assert.GreaterOrEqual(t, totalsLines, 2, "Expected at least header and one data row in totals.csv")
+		// Basic content validation
+		totalsLines := len(splitLines(string(totalsContent)))
+		assert.GreaterOrEqual(t, totalsLines, 2, "Expected at least header and one data row in totals.csv")
+	})
+
+	t.Run("FormattedGenerator", func(t *testing.T) {
+		// Create a temporary directory for test outputs
+		tmpDir, err := os.MkdirTemp("", "csv-test-formatted")
+		require.NoError(t, err)
+		defer os.RemoveAll(tmpDir)
+
+		// Create silent logger
+		logger := zerolog.New(io.Discard)
+
+		// Test parameters
+		owner := "testowner"
+		repo := "testrepo"
+		reportID := "test-report-id"
+
+		// Create formatted generator
+		generator := NewCSVGeneratorWithFormat(tmpDir, owner, repo, reportID, logger)
+
+		// Generate the report
+		require.NoError(t, generator.Generate(setupTestData()))
+
+		// List all files in the directory
+		files, err := os.ReadDir(tmpDir)
+		require.NoError(t, err)
+
+		// Check that we have exactly two files (report and totals)
+		require.Equal(t, 2, len(files), "Expected exactly two files in the output directory")
+
+		// Check that filenames match the expected pattern
+		foundReport := false
+		foundTotals := false
+
+		for _, file := range files {
+			name := file.Name()
+			// Check for timestamp format (2006-01-02T15:04:05)
+			if strings.Contains(name, "_"+owner+"_"+repo+"_"+reportID+"_report.csv") {
+				foundReport = true
+
+				// Read file content
+				content, err := os.ReadFile(filepath.Join(tmpDir, name))
+				require.NoError(t, err)
+
+				// Verify content
+				reportLines := len(splitLines(string(content)))
+				assert.GreaterOrEqual(t, reportLines, 2, "Expected at least header and one data row in report.csv")
+			}
+
+			if strings.Contains(name, "_"+owner+"_"+repo+"_"+reportID+"_totals.csv") {
+				foundTotals = true
+
+				// Read file content
+				content, err := os.ReadFile(filepath.Join(tmpDir, name))
+				require.NoError(t, err)
+
+				// Verify content
+				totalsLines := len(splitLines(string(content)))
+				assert.GreaterOrEqual(t, totalsLines, 2, "Expected at least header and one data row in totals.csv")
+			}
+		}
+
+		assert.True(t, foundReport, "Report file with formatted name not found")
+		assert.True(t, foundTotals, "Totals file with formatted name not found")
+	})
 }
 
 // Mock implementation of octoscopeClient for testing
@@ -166,11 +231,15 @@ func TestServerGenerator(t *testing.T) {
 	// Create mock client
 	mockClient := &mockOctoscopeClient{}
 
-	// Create server config
+	// Custom report ID
+	customReportID := "custom-report-id-12345"
+
+	// Create server config with custom report ID
 	config := ServerConfig{
 		AppURL:    "https://notreal.url",
 		OwnerName: "testowner",
 		RepoName:  "testrepo",
+		ReportID:  customReportID,
 	}
 
 	// Create generator
@@ -182,7 +251,7 @@ func TestServerGenerator(t *testing.T) {
 	// Verify BatchCreate was called with correct parameters
 	assert.True(t, mockClient.batchCreateCalled)
 	assert.Len(t, mockClient.batchCreateJobs, 1)
-	assert.NotEmpty(t, mockClient.batchCreateReportID)
+	assert.Equal(t, customReportID, mockClient.batchCreateReportID)
 	assert.False(t, mockClient.batchCreateObfuscation)
 }
 

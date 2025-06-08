@@ -5,23 +5,49 @@ import (
 	"os"
 	"reflect"
 	"strconv"
+	"time"
 
 	"github.com/rs/zerolog"
 )
 
 // CSVGenerator generates CSV reports
 type CSVGenerator struct {
-	jobsPath   string
-	totalsPath string
-	logger     zerolog.Logger
+	jobsPath       string
+	totalsPath     string
+	logger         zerolog.Logger
+	ownerName      string
+	repoName       string
+	reportID       string
+	timeFormat     bool   // whether to use timestamped filenames
+	dateTimeFormat string // format for timestamps
 }
 
 // NewCSVGenerator creates a new CSV report generator
 func NewCSVGenerator(jobsPath, totalsPath string, logger zerolog.Logger) *CSVGenerator {
 	return &CSVGenerator{
-		jobsPath:   jobsPath,
-		totalsPath: totalsPath,
-		logger:     logger,
+		jobsPath:       jobsPath,
+		totalsPath:     totalsPath,
+		logger:         logger,
+		timeFormat:     false,
+		dateTimeFormat: "2006-01-02T15:04:05",
+	}
+}
+
+// NewCSVGeneratorWithFormat creates a new CSV report generator with formatted filenames
+func NewCSVGeneratorWithFormat(basePath string, owner, repo, reportID string, logger zerolog.Logger) *CSVGenerator {
+	timestamp := time.Now().Format("2006-01-02T15:04:05")
+	jobsPath := basePath + "/" + timestamp + "_" + owner + "_" + repo + "_" + reportID + "_report.csv"
+	totalsPath := basePath + "/" + timestamp + "_" + owner + "_" + repo + "_" + reportID + "_totals.csv"
+
+	return &CSVGenerator{
+		jobsPath:       jobsPath,
+		totalsPath:     totalsPath,
+		logger:         logger,
+		ownerName:      owner,
+		repoName:       repo,
+		reportID:       reportID,
+		timeFormat:     true,
+		dateTimeFormat: "2006-01-02T15:04:05",
 	}
 }
 
