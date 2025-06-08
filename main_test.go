@@ -544,6 +544,197 @@ func TestRun_NoFetchMode(t *testing.T) {
 	})
 }
 
+func TestReportCommand(t *testing.T) {
+	// Save original args
+	oldArgs := os.Args
+	defer func() { os.Args = oldArgs }()
+
+	// Test report command with different flags
+	tests := []struct {
+		name         string
+		args         []string
+		expectedCSV  bool
+		expectedHTML bool
+		expectFetch  bool
+	}{
+		{
+			name:         "Report command default",
+			args:         []string{"gh-octoscope", "report"},
+			expectedCSV:  false,
+			expectedHTML: false,
+			expectFetch:  true,
+		},
+		{
+			name:         "Report with CSV flag",
+			args:         []string{"gh-octoscope", "report", "--csv"},
+			expectedCSV:  true,
+			expectedHTML: false,
+			expectFetch:  true,
+		},
+		{
+			name:         "Report with HTML flag",
+			args:         []string{"gh-octoscope", "report", "--html"},
+			expectedCSV:  false,
+			expectedHTML: true,
+			expectFetch:  true,
+		},
+		{
+			name:         "Report with fetch=false",
+			args:         []string{"gh-octoscope", "report", "--fetch=false"},
+			expectedCSV:  false,
+			expectedHTML: false,
+			expectFetch:  false,
+		},
+		{
+			name:         "Report with multiple flags",
+			args:         []string{"gh-octoscope", "report", "--csv", "--html", "--fetch=false"},
+			expectedCSV:  true,
+			expectedHTML: true,
+			expectFetch:  false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			// Set args for this test
+			os.Args = tc.args
+
+			// Create a new command for this test
+			cmd := initializeRootCmd()
+
+			// Get the report command
+			reportCmd, _, err := cmd.Find([]string{"report"})
+			require.NoError(t, err)
+			require.NotNil(t, reportCmd)
+
+			// Parse flags
+			err = reportCmd.ParseFlags(tc.args[2:])
+			require.NoError(t, err)
+
+			// Check flag values
+			csvFlag, _ := reportCmd.Flags().GetBool("csv")
+			htmlFlag, _ := reportCmd.Flags().GetBool("html")
+			fetchFlag, _ := reportCmd.Flags().GetBool("fetch")
+
+			assert.Equal(t, tc.expectedCSV, csvFlag)
+			assert.Equal(t, tc.expectedHTML, htmlFlag)
+			assert.Equal(t, tc.expectFetch, fetchFlag)
+		})
+	}
+}
+
+func TestReportDeleteCommand(t *testing.T) {
+	// Save original args
+	oldArgs := os.Args
+	defer func() { os.Args = oldArgs }()
+
+	// Mock data
+	testReportID := "abcd1234-5678-efgh-9012"
+
+	// Create mock clients
+	mockOS := new(mockOctoscopeClient)
+	mockOS.On("DeleteReport", mock.Anything, testReportID).Return(nil)
+
+	// Store original factory
+	origNewOctoscopeClient := newOctoscopeClient
+
+	// Replace with mock factory
+	newOctoscopeClient = func(cfg api.OctoscopeConfig) api.OctoscopeClient {
+		return mockOS
+	}
+
+	// Restore original factory after test
+	defer func() {
+		newOctoscopeClient = origNewOctoscopeClient
+	}()
+
+	// Test for correct args validation
+	tests := []struct {
+		name          string
+		args          []string
+		expectedError string
+	}{
+		{
+			name:          "Delete with report ID",
+			args:          []string{"gh-octoscope", "report", "delete", testReportID},
+			expectedError: "",
+		},
+		{
+			name:          "Delete without report ID",
+			args:          []string{"gh-octoscope", "report", "delete"},
+			expectedError: "accepts 1 arg(s), received 0",
+		},
+		{
+			name:          "Delete with too many args",
+			args:          []string{"gh-octoscope", "report", "delete", testReportID, "extra-arg"},
+			expectedError: "accepts 1 arg(s), received 2",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			// Set args for this test
+			os.Args = tc.args
+
+			// Create a command for testing
+			rootCmd := initializeRootCmd()
+
+			// Get the delete command
+			var deleteCmd *cobra.Command
+			var err error
+
+			reportCmd, _, _ := rootCmd.Find([]string{"report"})
+			require.NotNil(t, reportCmd)
+
+			if len(tc.args) > 2 {
+				deleteCmd, _, err = reportCmd.Find([]string{"delete"})
+				require.NoError(t, err)
+				require.NotNil(t, deleteCmd)
+			}
+
+			// Execute the command to test arg validation
+			if tc.expectedError != "" {
+				// Set the command arguments excluding the command name
+				reportCmd.SetArgs(tc.args[2:])
+				err = reportCmd.Execute()
+				assert.Error(t, err)
+				assert.Contains(t, err.Error(), tc.expectedError)
+			} else {
+				// For successful case, just verify we can find the command and its structure
+				assert.NotNil(t, deleteCmd)
+				assert.Equal(t, "delete", deleteCmd.Name())
+				// Verify the command exists and matches our expectations
+				assert.NotNil(t, deleteCmd.Args)
+			}
+		})
+	}
+
+	// Test the actual functionality with valid arguments
+	t.Run("Delete report functionality", func(t *testing.T) {
+		t.Skip() // Skip to avoid calling the real API
+
+		// This would be how we'd execute and verify, but we're skipping for now
+		// Create a temporary directory for output
+		// tmpDir, err := os.MkdirTemp("", "octoscope-test")
+		// require.NoError(t, err)
+		// defer os.RemoveAll(tmpDir)
+		/*
+			// Setup env for test
+			os.Setenv("OCTOSCOPE_API_URL", "https://api.example.com")
+			defer os.Unsetenv("OCTOSCOPE_API_URL")
+
+			// Execute delete command
+			rootCmd := initializeRootCmd()
+			rootCmd.SetArgs([]string{"report", "delete", testReportID})
+			err = rootCmd.Execute()
+			require.NoError(t, err)
+
+			// Verify the client was called properly
+			mockOS.AssertCalled(t, "DeleteReport", mock.Anything, testReportID)
+		*/
+	})
+}
+
 // Helper variables and functions for mocking
 var (
 	newClient = func(repo repository.Repository, cfg api.Config) api.Client {
