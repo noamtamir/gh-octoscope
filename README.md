@@ -60,6 +60,11 @@ gh octoscope fetch
 gh octoscope report --fetch=false
 ```
 
+### Delete a report from the server:
+```shell
+gh octoscope report delete <report-id>
+```
+
 ### Enable shell completion
 
 #### Bash
@@ -95,6 +100,7 @@ gh octoscope [command]
 
 #### Main Commands
 - `report`: Generate reports based on GitHub Actions usage data
+  - `report delete`: Delete a report from the Octoscope server
 - `fetch`: Fetch GitHub Actions usage data without generating reports
 - `version`: Print the version number of gh-octoscope
 - `completion`: Generate shell completion scripts

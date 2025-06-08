@@ -14,6 +14,7 @@ import (
 
 type OctoscopeClient interface {
 	BatchCreate(ctx context.Context, jobs []reports.JobDetails, reportID string, shouldObfuscate bool) error
+	DeleteReport(ctx context.Context, reportID string) error
 }
 
 type octoscopeClient struct {
@@ -81,6 +82,39 @@ func (c *octoscopeClient) BatchCreate(ctx context.Context, jobs []reports.JobDet
 		Int("job_count", len(jobs)).
 		Str("report_id", reportID).
 		Msg("Successfully uploaded job batch")
+
+	return nil
+}
+
+func (c *octoscopeClient) DeleteReport(ctx context.Context, reportID string) error {
+	req, err := http.NewRequestWithContext(ctx, "DELETE", c.baseUrl+"/jobs", nil)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	q := req.URL.Query()
+	q.Add("report_id", reportID)
+	req.URL.RawQuery = q.Encode()
+
+	// Add GitHub token as Bearer token if available
+	if c.githubToken != "" {
+		req.Header.Set("Authorization", "Bearer "+c.githubToken)
+	}
+
+	resp, err := c.osClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to send delete request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("server returned error: status=%d body=%s", resp.StatusCode, string(body))
+	}
+
+	c.logger.Debug().
+		Str("report_id", reportID).
+		Msg("Successfully deleted report")
 
 	return nil
 }

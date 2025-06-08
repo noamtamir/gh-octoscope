@@ -193,6 +193,10 @@ type mockOctoscopeClient struct {
 	batchCreateReportID    string
 	batchCreateObfuscation bool
 	batchCreateError       error
+
+	deleteReportCalled bool
+	deleteReportID     string
+	deleteReportError  error
 }
 
 func (m *mockOctoscopeClient) BatchCreate(ctx context.Context, jobs []JobDetails, reportID string, shouldObfuscate bool) error {
@@ -201,6 +205,12 @@ func (m *mockOctoscopeClient) BatchCreate(ctx context.Context, jobs []JobDetails
 	m.batchCreateReportID = reportID
 	m.batchCreateObfuscation = shouldObfuscate
 	return m.batchCreateError
+}
+
+func (m *mockOctoscopeClient) DeleteReport(ctx context.Context, reportID string) error {
+	m.deleteReportCalled = true
+	m.deleteReportID = reportID
+	return m.deleteReportError
 }
 
 func TestServerGenerator(t *testing.T) {

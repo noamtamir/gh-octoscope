@@ -46,5 +46,10 @@ It can generate CSV, HTML, or full reports with different levels of detail.`,
 	reportCmd.Flags().BoolVar(&fetch, "fetch", true, "Whether to fetch new data or use existing data")
 	// Note: obfuscate is now a persistent flag defined in the root command
 
+	// Add subcommands
+	reportCmd.AddCommand(
+		newDeleteCmd(),
+	)
+
 	return reportCmd
 }

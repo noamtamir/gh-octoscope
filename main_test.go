@@ -67,6 +67,11 @@ func (m *mockOctoscopeClient) BatchCreate(ctx context.Context, jobs []reports.Jo
 	return args.Error(0)
 }
 
+func (m *mockOctoscopeClient) DeleteReport(ctx context.Context, reportID string) error {
+	args := m.Called(ctx, reportID)
+	return args.Error(0)
+}
+
 func TestCobraCommands(t *testing.T) {
 	// Save original args
 	oldArgs := os.Args
