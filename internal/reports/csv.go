@@ -2,6 +2,7 @@ package reports
 
 import (
 	"encoding/csv"
+	"fmt"
 	"os"
 	"reflect"
 	"strconv"
@@ -174,7 +175,21 @@ func (g *CSVGenerator) structToStringSlice(fj FlatJobDetails) []string {
 
 	for i := 0; i < n; i++ {
 		val := v.Field(i).Interface()
-		values[i] = val.(string)
+
+		// Convert different types to string
+		switch value := val.(type) {
+		case string:
+			values[i] = value
+		case float64:
+			values[i] = strconv.FormatFloat(value, 'f', 3, 64)
+		case int:
+			values[i] = strconv.Itoa(value)
+		case int64:
+			values[i] = strconv.FormatInt(value, 10)
+		default:
+			// For any other type, use fmt.Sprint
+			values[i] = fmt.Sprint(value)
+		}
 	}
 
 	return values

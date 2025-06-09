@@ -296,11 +296,29 @@ func TestFlattenJobsAndObfuscation(t *testing.T) {
 		assert.Len(t, flattened, 1)
 		job := flattened[0]
 
-		// Check that values are preserved
+		// Check that string values are preserved
 		assert.Equal(t, "testowner", job.OwnerName)
 		assert.Equal(t, "testrepo", job.RepoName)
 		assert.Equal(t, "Test Workflow", job.WorkflowName)
 		assert.Equal(t, "Test Job", job.JobName)
+
+		// Check numeric values are preserved and correct type
+		assert.Equal(t, int64(123456), job.RepoID)
+		assert.Equal(t, int64(7890), job.WorkflowID)
+		assert.Equal(t, int64(12345), job.WorkflowRunID)
+		assert.Equal(t, int(42), job.WorkflowRunRunNumber)
+		assert.Equal(t, int(1), job.WorkflowRunRunAttempt)
+		assert.Equal(t, int64(987654), job.JobID)
+
+		// Check duration values
+		assert.Equal(t, float64(25*60), job.JobDurationSeconds) // 25 minutes in seconds
+		assert.Equal(t, "25m0s", job.JobDurationHumanReadable)
+		assert.Equal(t, float64(25*60), job.RoundedUpJobDurationSeconds)
+		assert.Equal(t, "25m0s", job.RoundedUpJobDurationHumanReadable)
+
+		// Check price values
+		assert.Equal(t, 0.008, job.PricePerMinuteInUSD)
+		assert.Equal(t, 0.2, job.BillableInUSD)
 	})
 
 	t.Run("WithObfuscation", func(t *testing.T) {
@@ -316,6 +334,11 @@ func TestFlattenJobsAndObfuscation(t *testing.T) {
 		// Check obfuscation pattern for some fields
 		assert.Regexp(t, "^tes\\*+$", job.OwnerName)
 		assert.Regexp(t, "^tes\\*+$", job.RepoName)
+
+		// Check numeric values are not affected by obfuscation
+		assert.Equal(t, int64(123456), job.RepoID)
+		assert.Equal(t, int64(7890), job.WorkflowID)
+		assert.Equal(t, float64(25*60), job.JobDurationSeconds)
 	})
 }
 
