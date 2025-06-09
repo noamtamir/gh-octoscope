@@ -2,65 +2,43 @@
 
 The missing cost explorer for GitHub Actions. Track and analyze your GitHub Actions usage and costs.
 
-## Install Locally
-Prerequisites:
-- Go 1.21+
-- GitHub CLI (gh)
 
-Login to github via gh:
-```shell
-gh auth login
-```
+## Install
+Prerequisites: gh (GitHub CLI)
 
-Clone this repository:
-```shell
-git clone https://github.com/noamtamir/gh-octoscope.git
-```
-
-Build the extension:
-```shell
-cd gh-octoscope && go build
-```
-
-Install the extension:
-```shell
-gh extension install .
-```
-
-Run locally:
-```shell
-cd /path/to/repo/ && gh octoscope report
-```
-
-## Installation (!!! NOT SUPPORTED YET !!!)
 ```shell
 gh extension install noamtamir/gh-octoscope
 ```
 
-
 ## Quickstart
 
-### Generate full ephemeral report (available for 72 hours):
+Login to github via gh, if not already logged in:
+```shell
+gh auth login
+```
+
+
+Generate full ephemeral report (available for 72 hours):
 ```shell
 gh octoscope report
 ```
 
-### Generate local reports and show debug logs:
+Generate local reports and show debug logs:
 ```shell
 gh octoscope report --csv --debug
 ```
 
-### Only fetch data without generating reports:
+Only fetch data without generating reports, for future use:
 ```shell
 gh octoscope fetch
 ```
 
-### Generate reports from previously fetched data:
+Generate reports from previously fetched data:
 ```shell
 gh octoscope report --fetch=false
 ```
 
-### Delete a report from the server:
+Delete a report data from the server:
 ```shell
 gh octoscope report delete <report-id>
 ```
@@ -115,6 +93,38 @@ gh octoscope [command]
 #### Report Command Flags
 - `--csv`: Generate CSV report
 - `--fetch`: Whether to fetch new data or use existing data (default true, set to false to use previously fetched data)
+
+## Devlop Locally
+### Install
+
+Prerequisites:
+- Go 1.21+
+- GitHub CLI (gh)
+
+Clone this repository:
+```shell
+git clone https://github.com/noamtamir/gh-octoscope.git
+```
+
+Build the extension:
+```shell
+cd gh-octoscope && go build
+```
+
+Install the extension:
+```shell
+gh extension install .
+```
+
+Login to github via gh, if not already logged in:
+```shell
+gh auth login
+```
+
+Run locally:
+```shell
+cd /path/to/repo/ && gh octoscope report
+```
 
 ## Optional:Environment Variables
 
