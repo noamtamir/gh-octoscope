@@ -16,10 +16,15 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-            go-version: 1.23.0
+          go-version: '1.23'
 
       - name: Download dependencies
         run: go mod tidy
+
+      - name: Fix go.mod for precompile
+        run: |
+          sed -i 's/go 1.23.0/go 1.23/' go.mod
+          sed -i '/^toolchain/d' go.mod
 
       - name: Run tests
         run: go test ./...
