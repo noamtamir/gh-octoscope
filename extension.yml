@@ -1,0 +1,2 @@
+name: gh-octoscope
+description: "The missing cost explorer for GitHub Actions. Track and analyze your GitHub Actions usage and costs. Fetches data from the GitHub API and provides insights into your Actions."
