@@ -15,7 +15,6 @@ type Client interface {
 	ListRepositoryRuns(ctx context.Context, from time.Time) (*github.WorkflowRuns, error)
 	ListWorkflowJobs(ctx context.Context, runID int64) (*github.Jobs, error)
 	ListWorkflowJobsAttempt(ctx context.Context, runID, attempt int64) (*github.Jobs, error)
-	GetWorkflowRunUsage(ctx context.Context, runID int64) (*github.WorkflowRunUsage, error)
 }
 
 type client struct {
@@ -172,15 +171,6 @@ func (c *client) ListWorkflowJobsAttempt(ctx context.Context, runID, attempt int
 	}
 
 	return allJobs, nil
-}
-
-func (c *client) GetWorkflowRunUsage(ctx context.Context, runID int64) (*github.WorkflowRunUsage, error) {
-	usage, resp, err := c.ghClient.Actions.GetWorkflowRunUsageByID(ctx, c.repo.Owner, c.repo.Name, runID)
-	if err != nil {
-		return nil, err
-	}
-	c.logResponse(resp, usage)
-	return usage, nil
 }
 
 func (c *client) logResponse(resp *github.Response, body interface{}) {

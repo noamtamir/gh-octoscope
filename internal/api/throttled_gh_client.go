@@ -16,11 +16,10 @@ type ThrottledClient interface {
 	FetchRunsWithJobs(ctx context.Context, from time.Time) ([]RunWithJobs, error)
 }
 
-// RunWithJobs contains a workflow run with its associated jobs and usage data
+// RunWithJobs contains a workflow run with its associated jobs
 type RunWithJobs struct {
 	Run         *github.WorkflowRun
 	Jobs        []*github.WorkflowJob
-	UsageData   *github.WorkflowRunUsage
 	Workflow    *github.Workflow
 	AttemptJobs map[int][]*github.WorkflowJob
 }
@@ -296,21 +295,9 @@ func (c *throttledClient) processRun(ctx context.Context, run *github.WorkflowRu
 	}
 	result.Workflow = wfl
 
-	// Get workflow run usage
-	var usage *github.WorkflowRunUsage
-	err := c.executeWithRateLimit(ctx, func() error {
-		var err error
-		usage, _, err = c.ghClient.Actions.GetWorkflowRunUsageByID(ctx, c.repo.Owner, c.repo.Name, *run.ID)
-		return err
-	})
-	if err != nil {
-		return result, err
-	}
-	result.UsageData = usage
-
 	// Get jobs for the current run attempt
 	var jobs *github.Jobs
-	err = c.executeWithRateLimit(ctx, func() error {
+	err := c.executeWithRateLimit(ctx, func() error {
 		var err error
 		jobs, err = c.ListWorkflowJobs(ctx, *run.ID)
 		return err

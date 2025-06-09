@@ -117,35 +117,20 @@ func fetchData(cfg Config, ghCLIConfig GitHubCLIConfig, logger zerolog.Logger) (
 		return nil, totalCosts, err
 	}
 	fmt.Println(createSuccessMessage("Data fetching completed!"))
-
 	// Process the fetched runs and jobs
 	s = createSpinner("Processing data...")
 	s.Start()
 
-	jobRunnerMap := make(map[int]billing.RunnerDuration)
 	for _, runWithJobs := range runsWithJobs {
 		run := runWithJobs.Run
 		workflow := runWithJobs.Workflow
-		workflowRunUsage := runWithJobs.UsageData
-
-		// Create job runner map from usage data
-		if workflowRunUsage.Billable != nil {
-			for runnerType, billable := range *workflowRunUsage.Billable {
-				for _, job := range billable.JobRuns {
-					jobRunnerMap[*job.JobID] = billing.RunnerDuration{
-						Runner:   runnerType,
-						Duration: job.DurationMS,
-					}
-				}
-			}
-		}
 
 		// Process main jobs
-		jobDetails, totalCosts = ProcessJobs(jobDetails, totalCosts, repoDetails, workflow, run, runWithJobs.Jobs, jobRunnerMap, calculator)
+		jobDetails, totalCosts = ProcessJobs(jobDetails, totalCosts, repoDetails, workflow, run, runWithJobs.Jobs, calculator)
 
 		// Process jobs from previous attempts
 		for _, attemptJobs := range runWithJobs.AttemptJobs {
-			jobDetails, totalCosts = ProcessJobs(jobDetails, totalCosts, repoDetails, workflow, run, attemptJobs, jobRunnerMap, calculator)
+			jobDetails, totalCosts = ProcessJobs(jobDetails, totalCosts, repoDetails, workflow, run, attemptJobs, calculator)
 		}
 	}
 
@@ -386,16 +371,11 @@ func ProcessJobs(
 	workflow *github.Workflow,
 	run *github.WorkflowRun,
 	jobs []*github.WorkflowJob,
-	jobRunnerMap map[int]billing.RunnerDuration,
 	calculator *billing.Calculator,
 ) ([]reports.JobDetails, reports.TotalCosts) {
 	for _, job := range jobs {
-		runnerDuration, exists := jobRunnerMap[int(*job.ID)]
-		if !exists {
-			continue
-		}
-
-		cost, err := calculator.CalculateJobCost(job, billing.RunnerType(runnerDuration.Runner))
+		// Calculate job costs based on labels
+		cost, runnerType, err := calculator.CalculateJobCost(job)
 		if err != nil {
 			continue
 		}
@@ -409,7 +389,7 @@ func ProcessJobs(
 			RoundedUpJobDuration: cost.BillableDuration,
 			PricePerMinuteInUSD:  cost.PricePerMinute,
 			BillableInUSD:        cost.TotalBillableUSD,
-			Runner:               string(runnerDuration.Runner),
+			Runner:               string(runnerType),
 		})
 
 		totalCosts.JobDuration += cost.ActualDuration

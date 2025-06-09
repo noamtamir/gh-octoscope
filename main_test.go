@@ -54,10 +54,7 @@ func (m *mockGitHubClient) ListWorkflowJobsAttempt(ctx context.Context, runID, a
 	return args.Get(0).(*github.Jobs), args.Error(1)
 }
 
-func (m *mockGitHubClient) GetWorkflowRunUsage(ctx context.Context, runID int64) (*github.WorkflowRunUsage, error) {
-	args := m.Called(ctx, runID)
-	return args.Get(0).(*github.WorkflowRunUsage), args.Error(1)
-}
+// GetWorkflowRunUsage has been removed since we're now using job labels
 
 // Mock Octoscope API client
 type mockOctoscopeClient struct {
@@ -218,6 +215,7 @@ func TestProcessJobs(t *testing.T) {
 			Conclusion:  &conclusion,
 			CreatedAt:   &github.Timestamp{Time: now.Add(-30 * time.Minute)},
 			CompletedAt: &github.Timestamp{Time: now.Add(-25 * time.Minute)},
+			Labels:      []string{"ubuntu-latest"},
 		},
 		{
 			ID:          github.Int64(9013),
@@ -226,12 +224,8 @@ func TestProcessJobs(t *testing.T) {
 			Conclusion:  &conclusion,
 			CreatedAt:   &github.Timestamp{Time: now.Add(-20 * time.Minute)},
 			CompletedAt: &github.Timestamp{Time: now.Add(-10 * time.Minute)},
+			Labels:      []string{"windows-latest"},
 		},
-	}
-
-	jobRunnerMap := map[int]billing.RunnerDuration{
-		9012: {Runner: "UBUNTU", Duration: github.Int64(300000)},  // 5 minutes
-		9013: {Runner: "WINDOWS", Duration: github.Int64(600000)}, // 10 minutes
 	}
 
 	// Setup logger
@@ -245,7 +239,7 @@ func TestProcessJobs(t *testing.T) {
 	totalCosts := reports.TotalCosts{}
 
 	// Run the function under test - use the exported function from cmd package
-	newJobDetails, newTotalCosts := cmd.ProcessJobs(jobDetails, totalCosts, repo, wfl, run, jobs, jobRunnerMap, calculator)
+	newJobDetails, newTotalCosts := cmd.ProcessJobs(jobDetails, totalCosts, repo, wfl, run, jobs, calculator)
 
 	// Check results
 	assert.Len(t, newJobDetails, 2)
@@ -337,18 +331,9 @@ func TestRun_FetchMode(t *testing.T) {
 				CreatedAt:   &github.Timestamp{Time: now.Add(-30 * time.Minute)},
 				CompletedAt: &github.Timestamp{Time: now.Add(-25 * time.Minute)},
 				RunnerName:  github.String("ubuntu-latest"),
+				Labels:      []string{"ubuntu-latest"},
 			},
 		},
-	}
-
-	usage := &github.WorkflowRunUsage{
-		Billable: &github.WorkflowRunBillMap{
-			"UBUNTU": &github.WorkflowRunBill{
-				TotalMS: github.Int64(300000), // 5 minutes
-				Jobs:    github.Int(1),
-			},
-		},
-		RunDurationMS: github.Int64(300000),
 	}
 
 	// Create mock clients
@@ -356,7 +341,6 @@ func TestRun_FetchMode(t *testing.T) {
 	mockGH.On("GetRepository", mock.Anything).Return(repo, nil)
 	mockGH.On("ListWorkflows", mock.Anything).Return(workflows, nil)
 	mockGH.On("ListRepositoryRuns", mock.Anything, mock.Anything).Return(runs, nil)
-	mockGH.On("GetWorkflowRunUsage", mock.Anything, int64(5678)).Return(usage, nil)
 	mockGH.On("ListWorkflowJobs", mock.Anything, int64(5678)).Return(jobs, nil)
 
 	mockOS := new(mockOctoscopeClient)
