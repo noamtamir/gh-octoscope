@@ -2,7 +2,7 @@ module github.com/noamtamir/gh-octoscope
 
 go 1.23.0
 
-toolchain go1.23.8
+toolchain go1.24.4
 
 require (
 	github.com/briandowns/spinner v1.23.0
