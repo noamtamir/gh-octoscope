@@ -13,3 +13,5 @@ jobs:
       - uses: actions/checkout@v4
       - name: Generate octoscope report
         uses: noamtamir/generate-octoscope-report@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
