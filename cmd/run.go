@@ -351,12 +351,8 @@ func generateReports(cfg Config, ghCLIConfig GitHubCLIConfig, jobDetails []repor
 		}
 		fmt.Println(createSuccessMessage("Full report generated successfully on server."))
 
-		// Print the report URL for easy access
 		reportURL := serverGen.GetReportURL()
-		// Make the URL clickable using the OSC 8 ANSI escape sequence
-		reportURLLink := fmt.Sprintf("\033]8;;%s\033\\%s\033]8;;\033\\", reportURL, reportURL)
-
-		fmt.Printf("\nReport URL: %s\n\n", reportURLLink)
+		fmt.Printf("\nReport URL: %s\n\n", reportURL)
 	}
 
 	return nil
