@@ -216,6 +216,8 @@ func TestProcessJobs(t *testing.T) {
 			CreatedAt:   &github.Timestamp{Time: now.Add(-30 * time.Minute)},
 			CompletedAt: &github.Timestamp{Time: now.Add(-25 * time.Minute)},
 			Labels:      []string{"ubuntu-latest"},
+			RunnerID:    github.Int64(1),
+			Steps:       []*github.TaskStep{{}},
 		},
 		{
 			ID:          github.Int64(9013),
@@ -225,6 +227,8 @@ func TestProcessJobs(t *testing.T) {
 			CreatedAt:   &github.Timestamp{Time: now.Add(-20 * time.Minute)},
 			CompletedAt: &github.Timestamp{Time: now.Add(-10 * time.Minute)},
 			Labels:      []string{"windows-latest"},
+			RunnerID:    github.Int64(2),
+			Steps:       []*github.TaskStep{{}},
 		},
 	}
 

@@ -165,6 +165,8 @@ func TestCalculateJobCost(t *testing.T) {
 		CreatedAt:   &github.Timestamp{Time: createdAt},
 		CompletedAt: &github.Timestamp{Time: completedAt},
 		Labels:      []string{"ubuntu-latest"},
+		RunnerID:    github.Int64(1),
+		Steps:       []*github.TaskStep{{}},
 	}
 
 	// Calculate cost

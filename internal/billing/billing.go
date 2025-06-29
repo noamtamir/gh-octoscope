@@ -138,6 +138,19 @@ func (c *Calculator) CalculateJobCost(job *github.WorkflowJob) (*JobCost, Runner
 		return nil, "", fmt.Errorf("job timing information is incomplete")
 	}
 
+	// Handle special cases: skipped, missing runner, empty steps, or invalid timestamps
+	if (job.Conclusion != nil && *job.Conclusion == "skipped") ||
+		job.RunnerID == nil ||
+		job.Steps == nil || len(job.Steps) == 0 ||
+		job.CompletedAt.Time.Before(job.CreatedAt.Time) {
+		return &JobCost{
+			ActualDuration:   0,
+			BillableDuration: 0,
+			PricePerMinute:   0.08, // Default price for Ubuntu runner for skipped jobs
+			TotalBillableUSD: 0,
+		}, RunnerUbuntu, nil // Default to Ubuntu runner for skipped jobs
+	}
+
 	// Determine runner type based on job labels
 	runnerType := DetermineRunnerTypeFromLabels(job, c.logger)
 
