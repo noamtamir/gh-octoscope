@@ -163,8 +163,7 @@ func TestCSVGenerator(t *testing.T) {
 		generator := NewCSVGeneratorWithFormat(tmpDir, owner, repo, reportID, logger)
 
 		// Generate the report
-		var err2 error
-		err2 = generator.Generate(setupTestData())
+		err2 := generator.Generate(setupTestData())
 		require.NoError(t, err2)
 
 		// Verify paths can be retrieved from the generator
@@ -271,8 +270,7 @@ func TestServerGenerator(t *testing.T) {
 	generator := NewServerGenerator(mockClient, config, logger)
 
 	// Generate the report
-	var err error
-	err = generator.Generate(setupTestData())
+	err := generator.Generate(setupTestData())
 	require.NoError(t, err)
 
 	// Verify the report URL via the getter
@@ -297,28 +295,28 @@ func TestFlattenJobsAndObfuscation(t *testing.T) {
 		job := flattened[0]
 
 		// Check that string values are preserved
-		assert.Equal(t, "testowner", job.OwnerName)
-		assert.Equal(t, "testrepo", job.RepoName)
-		assert.Equal(t, "Test Workflow", job.WorkflowName)
-		assert.Equal(t, "Test Job", job.JobName)
+		assert.Equal(t, "testowner", derefStr(job.OwnerName))
+		assert.Equal(t, "testrepo", derefStr(job.RepoName))
+		assert.Equal(t, "Test Workflow", derefStr(job.WorkflowName))
+		assert.Equal(t, "Test Job", derefStr(job.JobName))
 
 		// Check numeric values are preserved and correct type
-		assert.Equal(t, int64(123456), job.RepoID)
-		assert.Equal(t, int64(7890), job.WorkflowID)
-		assert.Equal(t, int64(12345), job.WorkflowRunID)
-		assert.Equal(t, int(42), job.WorkflowRunRunNumber)
-		assert.Equal(t, int(1), job.WorkflowRunRunAttempt)
-		assert.Equal(t, int64(987654), job.JobID)
+		assert.Equal(t, int64(123456), derefInt64(job.RepoID))
+		assert.Equal(t, int64(7890), derefInt64(job.WorkflowID))
+		assert.Equal(t, int64(12345), derefInt64(job.WorkflowRunID))
+		assert.Equal(t, int(42), derefInt(job.WorkflowRunRunNumber))
+		assert.Equal(t, int(1), derefInt(job.WorkflowRunRunAttempt))
+		assert.Equal(t, int64(987654), derefInt64(job.JobID))
 
 		// Check duration values
-		assert.Equal(t, float64(25*60), job.JobDurationSeconds) // 25 minutes in seconds
-		assert.Equal(t, "25m0s", job.JobDurationHumanReadable)
-		assert.Equal(t, float64(25*60), job.RoundedUpJobDurationSeconds)
-		assert.Equal(t, "25m0s", job.RoundedUpJobDurationHumanReadable)
+		assert.Equal(t, float64(25*60), derefFloat64(job.JobDurationSeconds)) // 25 minutes in seconds
+		assert.Equal(t, "25m0s", derefStr(job.JobDurationHumanReadable))
+		assert.Equal(t, float64(25*60), derefFloat64(job.RoundedUpJobDurationSeconds))
+		assert.Equal(t, "25m0s", derefStr(job.RoundedUpJobDurationHumanReadable))
 
 		// Check price values
-		assert.Equal(t, 0.008, job.PricePerMinuteInUSD)
-		assert.Equal(t, 0.2, job.BillableInUSD)
+		assert.Equal(t, 0.008, derefFloat64(job.PricePerMinuteInUSD))
+		assert.Equal(t, 0.2, derefFloat64(job.BillableInUSD))
 	})
 
 	t.Run("WithObfuscation", func(t *testing.T) {
@@ -328,17 +326,17 @@ func TestFlattenJobsAndObfuscation(t *testing.T) {
 		job := flattened[0]
 
 		// Check that values are obfuscated
-		assert.NotEqual(t, "testowner", job.OwnerName)
-		assert.NotEqual(t, "testrepo", job.RepoName)
+		assert.NotEqual(t, "testowner", derefStr(job.OwnerName))
+		assert.NotEqual(t, "testrepo", derefStr(job.RepoName))
 
 		// Check obfuscation pattern for some fields
-		assert.Regexp(t, "^tes\\*+$", job.OwnerName)
-		assert.Regexp(t, "^tes\\*+$", job.RepoName)
+		assert.Regexp(t, "^tes\\*+$", derefStr(job.OwnerName))
+		assert.Regexp(t, "^tes\\*+$", derefStr(job.RepoName))
 
 		// Check numeric values are not affected by obfuscation
-		assert.Equal(t, int64(123456), job.RepoID)
-		assert.Equal(t, int64(7890), job.WorkflowID)
-		assert.Equal(t, float64(25*60), job.JobDurationSeconds)
+		assert.Equal(t, int64(123456), derefInt64(job.RepoID))
+		assert.Equal(t, int64(7890), derefInt64(job.WorkflowID))
+		assert.Equal(t, float64(25*60), derefFloat64(job.JobDurationSeconds))
 	})
 }
 
@@ -348,4 +346,30 @@ func splitLines(s string) []string {
 		return []string{}
 	}
 	return strings.Split(s, "\n")
+}
+
+// Helper functions for pointer dereferencing in tests
+func derefStr(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
+}
+func derefInt64(i *int64) int64 {
+	if i == nil {
+		return 0
+	}
+	return *i
+}
+func derefInt(i *int) int {
+	if i == nil {
+		return 0
+	}
+	return *i
+}
+func derefFloat64(f *float64) float64 {
+	if f == nil {
+		return 0
+	}
+	return *f
 }
