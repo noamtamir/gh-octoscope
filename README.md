@@ -121,9 +121,19 @@ Login to github via gh, if not already logged in:
 gh auth login
 ```
 
-Run locally:
+### Run locally
 ```shell
 cd /path/to/repo/ && gh octoscope report
+```
+
+### Run Tests
+
+```shell
+# Unit tests only (fast)
+go test ./...
+
+# All tests (unit + integration)
+go test -tags=integration ./...
 ```
 
 ## Optional:Environment Variables

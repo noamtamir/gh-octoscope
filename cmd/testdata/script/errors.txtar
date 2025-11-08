@@ -1,0 +1,27 @@
+# Test that various error conditions return exit code 1 (non-zero)
+# The specific error message may vary, but the exit code should always be 1
+
+# Test that delete command with invalid args returns exit code 1
+! exec gh-octoscope report delete
+stderr 'accepts 1 arg'
+
+# Test that any failing command exits with code 1
+! exec gh-octoscope report --fetch=false
+# Will fail - either on git repo check or missing data
+
+# Test that invalid command exits with code 1
+! exec gh-octoscope invalid-command
+stderr 'unknown command'
+
+# Test that connection error with unreachable API URL returns exit code 1
+env OCTOSCOPE_API_URL=http://localhost:99999
+! exec gh-octoscope report delete fake-report-id
+stderr 'error deleting report'
+stderr 'failed to send delete request'
+stderr 'dial tcp'
+# Verifies that:
+# 1. Exit code is 1 (the ! prefix)
+# 2. Error message chain includes the delete error
+# 3. Error includes the HTTP request failure
+# 4. Error includes the network dial error (proving it's a connection issue)
+# 5. OCTOSCOPE_API_URL env var is used

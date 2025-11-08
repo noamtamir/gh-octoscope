@@ -17,10 +17,15 @@ jobs:
         uses: actions/setup-go@v5
 
       - name: Download dependencies
-        run: go mod tidy
+        run: go mod download
 
-      - name: Run tests
-        run: go test ./...
+      - name: Setup git for integration tests
+        run: |
+          git config --global user.email "ci@github.com"
+          git config --global user.name "GitHub CI"
+
+      - name: Run all tests (unit + integration)
+        run: go test -tags=integration ./... -count=1 -v
 
       - name: Precompile extension
         uses: cli/gh-extension-precompile@v2
