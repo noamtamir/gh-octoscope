@@ -17,10 +17,13 @@ jobs:
         uses: actions/setup-go@v5
 
       - name: Download dependencies
-        run: go mod tidy
+        run: go mod download
 
-      - name: Run tests
-        run: go test ./...
+      - name: Run unit tests
+        run: go test ./... -v
+
+      - name: Run integration tests
+        run: go test -tags=integration ./... -count=1 -v
 
       - name: Precompile extension
         uses: cli/gh-extension-precompile@v2
