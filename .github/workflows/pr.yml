@@ -1,14 +1,12 @@
-name: CI
+name: Pull Request
 
 on:
   pull_request:
     branches: [main]
-  push:
-    branches: [main]
 
 jobs:
   test:
-    name: Run Tests
+    name: Unit tests
     runs-on: ubuntu-latest
 
     steps:
