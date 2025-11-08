@@ -19,6 +19,11 @@ jobs:
       - name: Download dependencies
         run: go mod download
 
+      - name: Setup git for integration tests
+        run: |
+          git config --global user.email "ci@github.com"
+          git config --global user.name "GitHub CI"
+
       - name: Run all tests (unit + integration)
         run: go test -tags=integration ./... -count=1 -v
 
