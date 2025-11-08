@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/cli/go-gh/pkg/auth"
 	"github.com/cli/go-gh/v2/pkg/repository"
 	"github.com/spf13/cobra"
@@ -15,7 +17,7 @@ func newReportCmd() *cobra.Command {
 		Short: "Generate reports based on GitHub Actions usage data",
 		Long: `The report command generates various types of reports based on GitHub Actions usage data.
 It can generate CSV or full reports with different levels of detail.`,
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			// By default, if no subcommand is specified, we'll set the full report flag to true
 			cfg.FullReport = true
 
@@ -24,8 +26,7 @@ It can generate CSV or full reports with different levels of detail.`,
 			token, _ := auth.TokenForHost(host)
 			repo, err := repository.Current()
 			if err != nil {
-				cmd.PrintErrf("Failed to get current repository: %v\n", err)
-				return
+				return fmt.Errorf("failed to get current repository: %w", err)
 			}
 
 			ghCLIConfig := GitHubCLIConfig{
@@ -34,9 +35,7 @@ It can generate CSV or full reports with different levels of detail.`,
 			}
 
 			// Run the application with fetchMode determined by the fetch flag
-			if err := Run(cfg, ghCLIConfig, fetch); err != nil {
-				cmd.PrintErrf("Error: %v\n", err)
-			}
+			return Run(cfg, ghCLIConfig, fetch)
 		},
 	}
 

@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/cli/go-gh/pkg/auth"
 	"github.com/cli/go-gh/v2/pkg/repository"
 	"github.com/spf13/cobra"
@@ -13,7 +15,7 @@ func newFetchCmd() *cobra.Command {
 		Short: "Fetch GitHub Actions usage data",
 		Long: `The fetch command retrieves GitHub Actions usage data from the GitHub API.
 It only downloads and caches the data, without generating reports.`,
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			// Fetch data only, no reporting
 
 			// Disable all report generation
@@ -24,8 +26,7 @@ It only downloads and caches the data, without generating reports.`,
 			token, _ := auth.TokenForHost(host)
 			repo, err := repository.Current()
 			if err != nil {
-				cmd.PrintErrf("Failed to get current repository: %v\n", err)
-				return
+				return fmt.Errorf("failed to get current repository: %w", err)
 			}
 
 			ghCLIConfig := GitHubCLIConfig{
@@ -35,10 +36,11 @@ It only downloads and caches the data, without generating reports.`,
 
 			// Run the application in fetch mode
 			if err := Run(cfg, ghCLIConfig, true); err != nil {
-				cmd.PrintErrf("Error: %v\n", err)
-			} else {
-				cmd.Println("Data successfully fetched and stored for future use")
+				return err
 			}
+
+			cmd.Println("Data successfully fetched and stored for future use")
+			return nil
 		},
 	}
 

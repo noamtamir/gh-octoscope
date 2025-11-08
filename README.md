@@ -126,6 +126,16 @@ Run locally:
 cd /path/to/repo/ && gh octoscope report
 ```
 
+### Run Tests
+
+```shell
+# Unit tests only (fast)
+go test ./...
+
+# All tests (unit + integration)
+go test -tags=integration ./...
+```
+
 ## Optional:Environment Variables
 
 When using the `report` command, the following environment variables are configurable:

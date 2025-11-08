@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"os"
 
 	"github.com/cli/go-gh/pkg/auth"
@@ -16,7 +17,7 @@ func newDeleteCmd() *cobra.Command {
 		Short: "Delete a report from Octoscope server",
 		Long:  `Delete a report with the specified ID from the Octoscope server.`,
 		Args:  cobra.ExactArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			reportID := args[0]
 
 			// Setup Octoscope client
@@ -42,11 +43,11 @@ func newDeleteCmd() *cobra.Command {
 			// Delete the report
 			ctx := context.Background()
 			if err := octoscopeClient.DeleteReport(ctx, reportID); err != nil {
-				cmd.PrintErrf("Error deleting report: %v\n", err)
-				return
+				return fmt.Errorf("error deleting report: %w", err)
 			}
 
 			cmd.Printf("Report %s deleted successfully\n", reportID)
+			return nil
 		},
 	}
 
