@@ -19,10 +19,7 @@ jobs:
       - name: Download dependencies
         run: go mod download
 
-      - name: Run unit tests
-        run: go test ./... -v
-
-      - name: Run integration tests
+      - name: Run all tests (unit + integration)
         run: go test -tags=integration ./... -count=1 -v
 
       - name: Precompile extension

@@ -112,7 +112,7 @@ func fetchData(cfg Config, ghCLIConfig GitHubCLIConfig, logger zerolog.Logger) (
 	}
 
 	// Fetch runs with all their jobs and data concurrently
-	runsWithJobs, err := ghClient.(api.ThrottledClient).FetchRunsWithJobs(ctx, fromDate)
+	runsWithJobs, err := ghClient.FetchRunsWithJobs(ctx, fromDate)
 	if err != nil {
 		return nil, totalCosts, err
 	}
@@ -135,7 +135,7 @@ func fetchData(cfg Config, ghCLIConfig GitHubCLIConfig, logger zerolog.Logger) (
 	}
 
 	s.Stop()
-	fmt.Println(createSuccessMessage(fmt.Sprintf("Successfully processed data!")))
+	fmt.Println(createSuccessMessage("Successfully processed data!"))
 
 	// Save the data for future use without fetching again
 	s = createSpinner("Saving data for future use...")
