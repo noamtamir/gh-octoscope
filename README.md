@@ -121,7 +121,7 @@ Login to github via gh, if not already logged in:
 gh auth login
 ```
 
-Run locally:
+### Run locally
 ```shell
 cd /path/to/repo/ && gh octoscope report
 ```
