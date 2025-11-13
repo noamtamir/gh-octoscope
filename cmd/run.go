@@ -73,7 +73,9 @@ func Run(cfg Config, ghCLIConfig GitHubCLIConfig, fetchMode bool) error {
 	return nil
 }
 
-func fetchData(cfg Config, ghCLIConfig GitHubCLIConfig, logger zerolog.Logger) ([]reports.JobDetails, reports.TotalCosts, error) {
+// fetchAndProcessData fetches data from GitHub, processes it, and optionally saves it locally.
+// This is shared logic between the report and sync commands.
+func fetchAndProcessData(cfg Config, ghCLIConfig GitHubCLIConfig, logger zerolog.Logger, saveLocally bool) ([]reports.JobDetails, reports.TotalCosts, error) {
 	var jobDetails []reports.JobDetails
 	var totalCosts reports.TotalCosts
 
@@ -108,15 +110,19 @@ func fetchData(cfg Config, ghCLIConfig GitHubCLIConfig, logger zerolog.Logger) (
 	s.Start()
 	repoDetails, err := ghClient.GetRepository(ctx)
 	if err != nil {
+		s.Stop()
 		return nil, totalCosts, err
 	}
 
 	// Fetch runs with all their jobs and data concurrently
 	runsWithJobs, err := ghClient.FetchRunsWithJobs(ctx, fromDate)
 	if err != nil {
+		s.Stop()
 		return nil, totalCosts, err
 	}
+	s.Stop()
 	fmt.Println(createSuccessMessage("Data fetching completed!"))
+
 	// Process the fetched runs and jobs
 	s = createSpinner("Processing data...")
 	s.Start()
@@ -137,18 +143,26 @@ func fetchData(cfg Config, ghCLIConfig GitHubCLIConfig, logger zerolog.Logger) (
 	s.Stop()
 	fmt.Println(createSuccessMessage("Successfully processed data!"))
 
-	// Save the data for future use without fetching again
-	s = createSpinner("Saving data for future use...")
-	s.Start()
-	err = saveData(jobDetails, totalCosts)
-	s.Stop()
-	if err != nil {
-		logger.Warn().Err(err).Msg("Failed to save data for future use")
-	} else {
-		fmt.Println(createSuccessMessage("Data successfully saved for future use!"))
+	// Save the data for future use without fetching again (optional)
+	if saveLocally {
+		s = createSpinner("Saving data for future use...")
+		s.Start()
+		err = saveData(jobDetails, totalCosts)
+		s.Stop()
+		if err != nil {
+			logger.Warn().Err(err).Msg("Failed to save data for future use")
+		} else {
+			fmt.Println(createSuccessMessage("Data successfully saved for future use!"))
+		}
 	}
 
 	return jobDetails, totalCosts, nil
+}
+
+// fetchData is a wrapper that calls fetchAndProcessData with saveLocally=true
+// Kept for backward compatibility with the report command
+func fetchData(cfg Config, ghCLIConfig GitHubCLIConfig, logger zerolog.Logger) ([]reports.JobDetails, reports.TotalCosts, error) {
+	return fetchAndProcessData(cfg, ghCLIConfig, logger, true)
 }
 
 // saveData saves the fetched data to disk

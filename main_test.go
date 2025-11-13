@@ -66,6 +66,11 @@ func (m *mockOctoscopeClient) BatchCreate(ctx context.Context, jobs []reports.Jo
 	return args.Error(0)
 }
 
+func (m *mockOctoscopeClient) SyncJobs(ctx context.Context, jobs []reports.JobDetails, shouldObfuscate bool) error {
+	args := m.Called(ctx, jobs, shouldObfuscate)
+	return args.Error(0)
+}
+
 func (m *mockOctoscopeClient) DeleteReport(ctx context.Context, reportID string) error {
 	args := m.Called(ctx, reportID)
 	return args.Error(0)

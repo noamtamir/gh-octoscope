@@ -242,6 +242,11 @@ func (m *mockOctoscopeClient) BatchCreate(ctx context.Context, jobs []JobDetails
 	return m.batchCreateError
 }
 
+func (m *mockOctoscopeClient) SyncJobs(ctx context.Context, jobs []JobDetails, shouldObfuscate bool) error {
+	// For tests that don't use sync, just return nil
+	return nil
+}
+
 func (m *mockOctoscopeClient) DeleteReport(ctx context.Context, reportID string) error {
 	m.deleteReportCalled = true
 	m.deleteReportID = reportID

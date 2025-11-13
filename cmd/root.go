@@ -99,6 +99,7 @@ Built: ` + date + `
 		newVersionCmd(),
 		newReportCmd(),
 		newFetchCmd(),
+		newSyncCmd(),
 	)
 
 	return rootCmd

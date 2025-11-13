@@ -14,6 +14,7 @@ import (
 
 type OctoscopeClient interface {
 	BatchCreate(ctx context.Context, jobs []reports.JobDetails, reportID string, shouldObfuscate bool) error
+	SyncJobs(ctx context.Context, jobs []reports.JobDetails, shouldObfuscate bool) error
 	DeleteReport(ctx context.Context, reportID string) error
 }
 
@@ -40,23 +41,14 @@ func NewOctoscopeClient(cfg OctoscopeConfig) OctoscopeClient {
 	}
 }
 
-func (c *octoscopeClient) BatchCreate(ctx context.Context, jobs []reports.JobDetails, reportID string, shouldObfuscate bool) error {
-	flattened := reports.FlattenJobs(jobs, shouldObfuscate)
-
-	payload := struct {
-		ReportID string                   `json:"report_id"`
-		Jobs     []reports.FlatJobDetails `json:"jobs"`
-	}{
-		ReportID: reportID,
-		Jobs:     flattened,
-	}
-
+// doJSONRequest is a helper method for making JSON POST requests with authentication
+func (c *octoscopeClient) doJSONRequest(ctx context.Context, method, endpoint string, payload interface{}) error {
 	jsonData, err := json.Marshal(payload)
 	if err != nil {
-		return fmt.Errorf("failed to marshal batch data: %w", err)
+		return fmt.Errorf("failed to marshal payload: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", c.baseUrl+"/report-jobs", bytes.NewBuffer(jsonData))
+	req, err := http.NewRequestWithContext(ctx, method, c.baseUrl+endpoint, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
@@ -69,7 +61,7 @@ func (c *octoscopeClient) BatchCreate(ctx context.Context, jobs []reports.JobDet
 
 	resp, err := c.osClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("failed to send batch request: %w", err)
+		return fmt.Errorf("failed to send request: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -78,10 +70,48 @@ func (c *octoscopeClient) BatchCreate(ctx context.Context, jobs []reports.JobDet
 		return fmt.Errorf("server returned error: status=%d body=%s", resp.StatusCode, string(body))
 	}
 
+	return nil
+}
+
+func (c *octoscopeClient) BatchCreate(ctx context.Context, jobs []reports.JobDetails, reportID string, shouldObfuscate bool) error {
+	flattened := reports.FlattenJobs(jobs, shouldObfuscate)
+
+	payload := struct {
+		ReportID string                   `json:"report_id"`
+		Jobs     []reports.FlatJobDetails `json:"jobs"`
+	}{
+		ReportID: reportID,
+		Jobs:     flattened,
+	}
+
+	if err := c.doJSONRequest(ctx, "POST", "/report-jobs", payload); err != nil {
+		return err
+	}
+
 	c.logger.Debug().
 		Int("job_count", len(jobs)).
 		Str("report_id", reportID).
 		Msg("Successfully uploaded job batch")
+
+	return nil
+}
+
+func (c *octoscopeClient) SyncJobs(ctx context.Context, jobs []reports.JobDetails, shouldObfuscate bool) error {
+	flattened := reports.FlattenJobs(jobs, shouldObfuscate)
+
+	payload := struct {
+		Jobs []reports.FlatJobDetails `json:"jobs"`
+	}{
+		Jobs: flattened,
+	}
+
+	if err := c.doJSONRequest(ctx, "POST", "/jobs", payload); err != nil {
+		return err
+	}
+
+	c.logger.Debug().
+		Int("job_count", len(jobs)).
+		Msg("Successfully uploaded job batch (sync)")
 
 	return nil
 }
