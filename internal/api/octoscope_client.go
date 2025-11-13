@@ -56,7 +56,7 @@ func (c *octoscopeClient) BatchCreate(ctx context.Context, jobs []reports.JobDet
 		return fmt.Errorf("failed to marshal batch data: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", c.baseUrl+"/jobs", bytes.NewBuffer(jsonData))
+	req, err := http.NewRequestWithContext(ctx, "POST", c.baseUrl+"/report-jobs", bytes.NewBuffer(jsonData))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
@@ -87,7 +87,7 @@ func (c *octoscopeClient) BatchCreate(ctx context.Context, jobs []reports.JobDet
 }
 
 func (c *octoscopeClient) DeleteReport(ctx context.Context, reportID string) error {
-	req, err := http.NewRequestWithContext(ctx, "DELETE", c.baseUrl+"/jobs", nil)
+	req, err := http.NewRequestWithContext(ctx, "DELETE", c.baseUrl+"/report-jobs", nil)
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
